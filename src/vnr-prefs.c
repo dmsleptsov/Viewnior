@@ -57,6 +57,12 @@ toggle_dark_background_cb (GtkToggleButton *togglebutton, gpointer user_data)
     vnr_window_apply_preferences(VNR_WINDOW(VNR_PREFS(user_data)->vnr_win));
 }
 
+static void toggle_use_existing_process_cb(GtkToggleButton *togglebutton, gpointer user_data) {
+    VNR_PREFS(user_data)->use_existing_process = gtk_toggle_button_get_active(togglebutton);
+    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_window_toggle_use_existing_process(VNR_WINDOW(VNR_PREFS(user_data)->vnr_win));
+}
+
 static void
 toggle_fit_on_fullscreen_cb (GtkToggleButton *togglebutton, gpointer user_data)
 {

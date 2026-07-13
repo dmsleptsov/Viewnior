@@ -2140,9 +2140,15 @@ vnr_window_class_init (VnrWindowClass * klass)
 }
 
 GtkWindow *
-vnr_window_new ()
-{
-    return (GtkWindow *) g_object_new (VNR_TYPE_WINDOW, NULL);
+vnr_window_new() {
+    VnrWindow *p_vnr_window = g_object_new(VNR_TYPE_WINDOW, NULL);
+
+    if (p_vnr_window->prefs->use_existing_process) {
+        g_message("Selected single process");
+        vnr_register_dbus_service();
+    }
+
+    return (GtkWindow *) p_vnr_window;
 }
 
 static void
@@ -2800,4 +2806,11 @@ vnr_window_toggle_fullscreen (VnrWindow *window)
         vnr_window_fullscreen (window);
     else
         vnr_window_unfullscreen (window);
+}
+
+void vnr_window_toggle_use_existing_process (const VnrWindow *window) {
+    if(window->prefs->use_existing_process) {
+        g_message("Switch to true on use_existing_process, send quit on another instances");
+        vnr_send_quit();
+    }
 }

@@ -24,6 +24,7 @@
 #include <glib-object.h>
 #include <gtk/gtk.h>
 #include "vnr-prefs.h"
+#include "vnr-gdbus.h"
 
 G_BEGIN_DECLS
 
@@ -129,6 +130,7 @@ gboolean vnr_window_last     (VnrWindow *win);
 void     deny_slideshow      (VnrWindow *window);
 void     vnr_window_apply_preferences (VnrWindow *window);
 void     vnr_window_toggle_fullscreen (VnrWindow *win);
+void     vnr_window_toggle_use_existing_process (const VnrWindow *window);
 
 G_END_DECLS
 #endif /* __VNR_WINDOW_H__ */

@@ -18,6 +18,8 @@ viewnior_sources = [
     'vnr-crop.c',
     'vnr-tools.c',
     'uni-exiv2.cpp',
+    'vnr-gdbus.c',
+    'vnr-gdbus.h',
 ]
 
 marshal = 'uni-marshal'
