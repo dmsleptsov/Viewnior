@@ -1,5 +1,8 @@
-project('viewnior', 'c', 'cpp',
-  version: '1.8',
+project(
+  'viewnior',
+  'c',
+  'cpp',
+  version: '1.8.1',
   license: 'GPL3+',
   meson_version: '>= 0.43.0'
 )
@@ -12,9 +15,6 @@ datadir = get_option('datadir')
 
 # Compiler variables
 cc = meson.get_compiler('c')
-#
-
-# Imports
 gnome = import('gnome')
 i18n = import('i18n')
 #

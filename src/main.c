@@ -45,8 +45,8 @@ static GOptionEntry opt_entries[] = {
     {NULL}
 };
 
-int
-main (int argc, char *argv[])
+gint
+main (gint argc, gchar **argv)
 {
     GError *error = NULL;
     GOptionContext *opt_context;

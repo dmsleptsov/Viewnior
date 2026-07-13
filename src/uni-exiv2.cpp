@@ -25,18 +25,15 @@
 
 #include "uni-exiv2.hpp"
 
-#define ARRAY_SIZE(array) (sizeof array/sizeof(array[0]))
-
-static Exiv2::Image::AutoPtr cached_image;
+static Exiv2::Image::UniquePtr cached_image;
 
 extern "C"
 void
-uni_read_exiv2_map(const char *uri, void (*callback)(const char*, const char*, void*), void *user_data)
-{
+uni_read_exiv2_map(const char *uri, void (*callback)(const char *, const char *, void *), void *user_data) {
     Exiv2::LogMsg::setLevel(Exiv2::LogMsg::mute);
     try {
-        Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(uri);
-        if ( image.get() == 0 ) {
+        Exiv2::Image::UniquePtr image = Exiv2::ImageFactory::open(uri);
+        if (image.get() == nullptr) {
             return;
         }
 
@@ -44,66 +41,65 @@ uni_read_exiv2_map(const char *uri, void (*callback)(const char*, const char*, v
         Exiv2::ExifData &exifData = image->exifData();
         Exiv2::IptcData &iptcData = image->iptcData();
 
-        if ( !exifData.empty() ) {
-            for ( uint i = 0; i < ARRAY_SIZE(exifDataDictionary); i++ ) {
+        if (!exifData.empty()) {
+            for (uint i = 0; i < std::size(exifDataDictionary); i++) {
                 ExifDataDictionary dict = exifDataDictionary[i];
 
                 Exiv2::ExifData::const_iterator pos;
-                if ( dict.finder == NULL ) {
+                if (dict.finder == nullptr) {
                     Exiv2::ExifKey key(dict.key);
                     pos = exifData.findKey(key);
                 } else {
                     pos = dict.finder(exifData);
                 }
 
-                if ( pos != exifData.end() ) {
+                if (pos != exifData.end()) {
                     callback(dict.label, pos->print(&exifData).c_str(), user_data);
                 }
             }
         }
 
         std::string comment = image->comment();
-        if ( ! comment.empty() ) {
-            callback( _("Comment"), comment.c_str(), user_data );
+        if (!comment.empty()) {
+            callback(_("Comment"), comment.c_str(), user_data);
         }
 
-        if ( !iptcData.empty() ) {
-            for ( uint i = 0; i < ARRAY_SIZE(iptcDataDictionary); i++ ) {
+        if (!iptcData.empty()) {
+            for (uint i = 0; i < std::size(iptcDataDictionary); i++) {
                 IptcDataDictionary dict = iptcDataDictionary[i];
 
                 Exiv2::IptcKey key(dict.key);
                 Exiv2::IptcData::const_iterator pos;
                 pos = iptcData.findKey(key);
 
-                if ( pos != iptcData.end() ) {
+                if (pos != iptcData.end()) {
                     callback(dict.label, pos->value().toString().c_str(), user_data);
                 }
             }
         }
-    } catch (Exiv2::AnyError& e) {
+    } catch (Exiv2::Error &e) {
         std::cerr << "Exiv2: '" << e << "'\n";
     }
 }
 
 extern "C"
 int
-uni_read_exiv2_to_cache(const char *uri)
-{
+uni_read_exiv2_to_cache(const char *uri) {
     Exiv2::LogMsg::setLevel(Exiv2::LogMsg::mute);
 
-    if ( cached_image.get() != NULL ) {
+    if (cached_image.get() != nullptr) {
         cached_image->clearMetadata();
-        cached_image.reset(NULL);
+        cached_image.reset(nullptr);
     }
 
     try {
         cached_image = Exiv2::ImageFactory::open(uri);
-        if ( cached_image.get() == 0 ) {
+        if (cached_image.get() == nullptr) {
             return 1;
         }
 
         cached_image->readMetadata();
-    } catch (Exiv2::AnyError& e) {
+    } catch (Exiv2::Error &e) {
         std::cerr << "Exiv2: '" << e << "'\n";
     }
 
@@ -112,28 +108,27 @@ uni_read_exiv2_to_cache(const char *uri)
 
 extern "C"
 int
-uni_write_exiv2_from_cache(const char *uri)
-{
+uni_write_exiv2_from_cache(const char *uri) {
     Exiv2::LogMsg::setLevel(Exiv2::LogMsg::mute);
 
-    if ( cached_image.get() == NULL ) {
+    if (cached_image.get() == nullptr) {
         return 1;
     }
 
     try {
-        Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(uri);
-        if ( image.get() == 0 ) {
+        Exiv2::Image::UniquePtr image = Exiv2::ImageFactory::open(uri);
+        if (image.get() == nullptr) {
             return 2;
         }
 
-        image->setMetadata( *cached_image );
+        image->setMetadata(*cached_image);
         image->writeMetadata();
 
         cached_image->clearMetadata();
-        cached_image.reset(NULL);
+        cached_image.reset();
 
         return 0;
-    } catch (Exiv2::AnyError& e) {
+    } catch (Exiv2::Error &e) {
         std::cerr << "Exiv2: '" << e << "'\n";
     }
 
