@@ -6,17 +6,51 @@
 #define VNR_DBUS_METHOD_SWITCH "SwitchAndFocus"
 #define VNR_DBUS_METHOD_QUIT "Quit"
 
-#define VNR_DEFAULT_CONNECTION_TIMEOUT_MS 2000
+#define DEFAULT_REG_ID 0
 
-static constexpr gchar vnr_gdbus_introspection_xml[] =
-        "<node>"
-        "<interface name='" VNR_DBUS_INTERFACE "'>"
-        "<method name='" VNR_DBUS_METHOD_SWITCH "'>"
-        "<arg type='as' name='files' direction='in'/>"
-        "</method>"
-        "<method name='" VNR_DBUS_METHOD_QUIT "'/>"
-        "</interface>"
-        "</node>";
+static guint _signals_reg_id = DEFAULT_REG_ID;
+static guint _methods_reg_id = DEFAULT_REG_ID;
+static GDBusConnection *_connection = nullptr;
+
+static void gdbus_signal_received(GDBusConnection *connection,
+                                  const gchar *sender,
+                                  const gchar *object_path,
+                                  const gchar *interface_name,
+                                  const gchar *signal_name,
+                                  GVariant *parameters,
+                                  gpointer user_data) {
+    g_info("Received dbus signal '%s'", signal_name);
+
+    const auto unique_name = g_dbus_connection_get_unique_name(connection);
+    if (g_strcmp0(unique_name, sender) == 0) {
+        g_info("Sender signal is equal by own '%s'=='%s', will be skipping", sender, unique_name);
+        return;
+    }
+
+    if (g_strcmp0(signal_name, VNR_DBUS_METHOD_QUIT) == 0) {
+        g_warning("Call force quit on '%s' signal", signal_name);
+        gtk_main_quit();
+    } else {
+        g_warning("Unknown signal '%s' will be skipped", signal_name);
+    }
+}
+
+static guint subscribe_signals(GDBusConnection *connection) {
+    return g_dbus_connection_signal_subscribe(connection,
+                                              nullptr,
+                                              VNR_DBUS_INTERFACE,
+                                              nullptr,
+                                              VNR_DBUS_PATH,
+                                              nullptr,
+                                              G_DBUS_SIGNAL_FLAGS_NONE,
+                                              gdbus_signal_received,
+                                              nullptr,
+                                              nullptr);
+}
+
+static gboolean is_signals_init() {
+    return _signals_reg_id != DEFAULT_REG_ID;
+}
 
 static void gdbus_method_call(GDBusConnection *connection,
                               const gchar *sender,
@@ -26,32 +60,44 @@ static void gdbus_method_call(GDBusConnection *connection,
                               GVariant *parameters,
                               GDBusMethodInvocation *invocation,
                               gpointer user_data) {
-    g_return_if_fail(!g_strcmp0 (object_path, VNR_DBUS_PATH));
-    g_return_if_fail(!g_strcmp0 (interface_name, VNR_DBUS_INTERFACE));
+    g_info("Received gdbus method '%s'", method_name);
 
-    g_message("Received dbus method '%s'", method_name);
+    const auto unique_name = g_dbus_connection_get_unique_name(connection);
+    if (g_strcmp0(unique_name, sender) == 0) {
+        g_dbus_method_invocation_return_error(invocation,
+                                              G_DBUS_ERROR,
+                                              G_DBUS_ERROR_OBJECT_PATH_IN_USE,
+                                              "Sender method is equal by own '%s'=='%s'",
+                                              unique_name,
+                                              method_name);
+        return;
+    }
 
-    if (g_strcmp0(method_name, VNR_DBUS_METHOD_QUIT) == 0) {
-        g_dbus_method_invocation_return_value(invocation, nullptr);
+    if (g_strcmp0(method_name, VNR_DBUS_METHOD_SWITCH) == 0) {
+        gsize argc = g_variant_get_int32(parameters);
+        const gchar **argv = g_variant_get_strv(parameters, &argc);
 
-        g_message("Force quit", method_name);
-        gtk_main_quit();
+        g_info("Run with new files", argv);
+        //TODO
+
+        g_free(argv);
+        g_dbus_method_invocation_return_value(invocation, parameters);
     } else {
         g_dbus_method_invocation_return_error(invocation, G_DBUS_ERROR, G_DBUS_ERROR_UNKNOWN_METHOD,
                                               "Unknown method for dbus service" VNR_DBUS_SERVICE);
     }
 }
 
-
-static void bus_acquired_handler(GDBusConnection *connection, const gchar *name, gpointer user_data) {
-    GError *error = nullptr;
-
-    GDBusNodeInfo *info = g_dbus_node_info_new_for_xml(vnr_gdbus_introspection_xml, &error);
-    if (info == nullptr || *info->interfaces == nullptr) {
-        g_message("Failed to create dbus node: %s", error->message);
-        g_error_free(error);
-        return;
-    }
+static guint subscribe_methods(GDBusConnection *connection) {
+    static constexpr gchar vnr_gdbus_introspection_xml[] =
+            "<node>"
+                "<interface name='" VNR_DBUS_INTERFACE "'>"
+                    "<method name='" VNR_DBUS_METHOD_SWITCH "'>"
+                        "<arg type='i' name='argc' direction='in'/>"
+                        "<arg type='as' name='argv' direction='in'/>"
+                    "</method>"
+                "</interface>"
+            "</node>";
 
     static const GDBusInterfaceVTable vnr_gdbus_vtable =
     {
@@ -59,68 +105,131 @@ static void bus_acquired_handler(GDBusConnection *connection, const gchar *name,
         nullptr,
         nullptr
     };
-    guint register_id = g_dbus_connection_register_object(connection,
-                                                          VNR_DBUS_PATH,
-                                                          *info->interfaces,
-                                                          &vnr_gdbus_vtable,
-                                                          user_data,
-                                                          nullptr,
-                                                          &error);
 
-    g_message("registered interface with id %d", register_id);
-    if (register_id == 0) {
-        g_message("Failed to register object: %s", error->message);
+    GError *error = nullptr;
+    GDBusNodeInfo *info = g_dbus_node_info_new_for_xml(vnr_gdbus_introspection_xml, &error);
+    if (info == nullptr || *info->interfaces == nullptr) {
+        g_critical("Failed to create dbus node info: %s", error->message);
         g_error_free(error);
+        return DEFAULT_REG_ID;
     }
 
+    const guint id = g_dbus_connection_register_object(connection,
+                                                       VNR_DBUS_PATH,
+                                                       *info->interfaces,
+                                                       &vnr_gdbus_vtable,
+                                                       nullptr,
+                                                       nullptr,
+                                                       &error);
     g_dbus_node_info_unref(info);
+
+    if (id == DEFAULT_REG_ID) {
+        g_critical("Failed register methods with message: %s", error->message);
+        g_error_free(error);
+    }
+    return id;
+}
+
+static gboolean is_methods_init() {
+    return _methods_reg_id != DEFAULT_REG_ID;
+}
+
+static GDBusConnection *get_connection() {
+    if (_connection != nullptr) {
+        return _connection;
+    }
+
+    static GMutex _lock;
+
+    g_mutex_lock(&_lock);
+    if (_connection != nullptr) {
+        g_mutex_unlock(&_lock);
+        return _connection;
+    }
+
+    GError *errorConnection = nullptr;
+    _connection = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &errorConnection);
+    if (_connection == nullptr) {
+        g_critical("Failed to create dbus connection: '%s'", errorConnection->message);
+        g_error_free(errorConnection);
+    }
+    g_mutex_unlock(&_lock);
+    return _connection;
 }
 
 gboolean vnr_register_dbus_service() {
-    const guint owner_id = g_bus_own_name(G_BUS_TYPE_SESSION,
-                                          VNR_DBUS_SERVICE,
-                                          G_BUS_NAME_OWNER_FLAGS_NONE,
-                                          bus_acquired_handler,
-                                          nullptr,
-                                          nullptr,
-                                          nullptr,
-                                          nullptr);
-    g_message("Dbus register result: '%d'", owner_id);
-    return !owner_id;
+    GDBusConnection *connection = get_connection();
+    if (connection == nullptr) {
+        return false;
+    }
+
+    static GMutex signals_lock;
+    g_mutex_lock(&signals_lock);
+    if (!is_signals_init()) {
+        _signals_reg_id = subscribe_signals(connection);
+        if (!is_signals_init()) {
+            g_critical("Failed subscribe to signals: '%d'", _signals_reg_id);
+        } else {
+            g_info("Success subscribe to signals with '%d' id", _signals_reg_id);
+        }
+    }
+    g_mutex_unlock(&signals_lock);
+
+    static GMutex methods_lock;
+    g_mutex_lock(&methods_lock);
+    if (!is_methods_init()) {
+        _methods_reg_id = subscribe_methods(connection);
+        if (!is_methods_init()) {
+            g_critical("Failed subscribe to methods: '%d'", _methods_reg_id);
+        } else {
+            g_info("Success subscribe to methods with '%d' id", _methods_reg_id);
+        }
+    }
+    g_mutex_unlock(&methods_lock);
+
+    const gboolean success = is_signals_init() && is_methods_init();
+    if (!success) {
+        vnr_close_dbus_service();
+    }
+    return success;
 }
+
+void vnr_close_dbus_service() {
+    if (_connection == nullptr) {
+        return;
+    }
+
+    if (is_signals_init()) {
+        g_dbus_connection_signal_unsubscribe(_connection, _signals_reg_id);
+    }
+
+    if (is_methods_init()) {
+        g_dbus_connection_unregister_object(_connection, _methods_reg_id);
+    }
+
+    g_object_unref(_connection);
+}
+
 
 gboolean vnr_send_switch_and_focus(gint argc, gchar **argv) {
 }
 
 gboolean vnr_send_quit() {
-    GError *errorConnection = nullptr;
-    GDBusConnection *connection = g_bus_get_sync(G_BUS_TYPE_SESSION, nullptr, &errorConnection);
+    GDBusConnection *connection = get_connection();
     if (connection == nullptr) {
-        g_message("Failed to create gbus connection: '%s'", errorConnection->message);
-        g_error_free(errorConnection);
-        return FALSE;
+        return false;
     }
 
     GError *errorConnectionCall = nullptr;
-    GVariant *reply = g_dbus_connection_call_sync(connection,
-                                                  VNR_DBUS_SERVICE,
-                                                  VNR_DBUS_PATH,
-                                                  VNR_DBUS_INTERFACE,
-                                                  VNR_DBUS_METHOD_QUIT,
-                                                  nullptr,
-                                                  nullptr,
-                                                  G_DBUS_CALL_FLAGS_NO_AUTO_START,
-                                                  0,
-                                                  nullptr,
-                                                  &errorConnectionCall);
-
-    g_object_unref(connection);
-
-    const gboolean success = reply != nullptr;
-    if (success) {
-        g_variant_unref(reply);
-    } else {
-        g_message("Failed to exec connection call: '%s'", errorConnectionCall->message);
+    const gboolean success = g_dbus_connection_emit_signal(connection,
+                                                           nullptr,
+                                                           VNR_DBUS_PATH,
+                                                           VNR_DBUS_INTERFACE,
+                                                           VNR_DBUS_METHOD_QUIT,
+                                                           nullptr,
+                                                           &errorConnectionCall);
+    if (!success) {
+        g_critical("Failed emit signal: '%s'", errorConnectionCall->message);
         g_error_free(errorConnectionCall);
     }
     return success;

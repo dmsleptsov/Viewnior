@@ -9,6 +9,8 @@ G_BEGIN_DECLS
 
 gboolean vnr_register_dbus_service();
 
+void vnr_close_dbus_service();
+
 gboolean vnr_send_switch_and_focus(gint argc, gchar **argv);
 
 gboolean vnr_send_quit();

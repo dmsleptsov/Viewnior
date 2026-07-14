@@ -2143,10 +2143,8 @@ GtkWindow *
 vnr_window_new() {
     VnrWindow *p_vnr_window = g_object_new(VNR_TYPE_WINDOW, NULL);
 
-    if (p_vnr_window->prefs->use_existing_process) {
-        g_message("Selected single process");
-        vnr_register_dbus_service();
-    }
+    //TODO
+    vnr_register_dbus_service();
 
     return (GtkWindow *) p_vnr_window;
 }
