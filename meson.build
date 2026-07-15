@@ -2,7 +2,7 @@ project(
   'viewnior',
   'c',
   'cpp',
-  version: '1.8.1',
+  version: '1.9',
   license: 'GPL3+',
   meson_version: '>= 0.43.0'
 )
