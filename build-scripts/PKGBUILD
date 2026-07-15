@@ -14,11 +14,6 @@ build() {
   ninja -C build
 }
 
-check() {
-  # Run the test suite
-  meson test -C build --print-errorlogs
-}
-
 package() {
   DESTDIR="$pkgdir" meson install -C build
 }

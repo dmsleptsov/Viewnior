@@ -13,4 +13,4 @@ cp -r ../src src/src
 cp ../meson.build src/meson.build
 cp ../meson_post_install.py src/meson_post_install.py
 
-makepkg
+makepkg -f
