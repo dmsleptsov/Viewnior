@@ -64,6 +64,8 @@ static gboolean leave_image_area_cb(GtkWidget * widget, GdkEventCrossing * ev, V
 static gboolean fullscreen_motion_cb(GtkWidget * widget, GdkEventMotion * ev, VnrWindow *window);
 static void open_with_launch_application_cb (GtkAction *action, VnrWindow *window);
 
+static VnrWindow* _main_window =  nullptr;
+
 const gchar *ui_definition = "<ui>"
   "<menubar name=\"MainMenu\">"
     "<menu action=\"File\">"
@@ -1119,12 +1121,11 @@ window_change_state_cb (GtkWidget * widget, GdkEventWindowState * event, gpointe
     return TRUE;
 }
 
-
-static void
-window_destroy_cb (GtkWidget *widget, gpointer user_data)
-{
+//TODO: When emit signal by name ('destroy') calling twice
+static void window_destroy_cb (GtkWidget *widget, gpointer user_data) {
     vnr_window_save_accel_map();
     vnr_prefs_save(VNR_WINDOW(widget)->prefs);
+    vnr_dbus_close();
     gtk_main_quit();
 }
 
@@ -1309,6 +1310,9 @@ vnr_window_cmd_reload (GtkAction *action, VnrWindow *window)
     vnr_window_open(window, FALSE);
 }
 
+static void vnr_window_cmd_close(GtkAction *action, VnrWindow *window) {
+    window_destroy_cb(GTK_WIDGET(window), nullptr);
+}
 
 static gboolean
 file_size_is_small(char *filename) {
@@ -1859,7 +1863,7 @@ static const GtkActionEntry action_entries_window[] = {
       G_CALLBACK (vnr_window_cmd_open_dir) },
     { "FileClose", GTK_STOCK_CLOSE, N_("_Close"), "<control>W",
       N_("Close window"),
-      G_CALLBACK (gtk_main_quit) },
+      G_CALLBACK (vnr_window_cmd_close) },
     { "HelpAbout", GTK_STOCK_ABOUT, N_("_About"), NULL,
       N_("About this application"),
       G_CALLBACK (vnr_window_cmd_about) },
@@ -2052,10 +2056,11 @@ vnr_window_key_press (GtkWidget *widget, GdkEventKey *event)
             break;
         case GDK_KEY_Escape:
         case 'q':
-            if(window->mode != VNR_WINDOW_MODE_NORMAL)
+            if (window->mode != VNR_WINDOW_MODE_NORMAL) {
                 vnr_window_unfullscreen(window);
-            else
-                gtk_main_quit();
+            } else {
+                window_destroy_cb(widget, nullptr);
+            }
             break;
         case GDK_KEY_space:
             if (toolbar_focus_child != NULL || msg_area_focus_child != NULL)
@@ -2139,14 +2144,18 @@ vnr_window_class_init (VnrWindowClass * klass)
     widget_class->drag_data_received = vnr_window_drag_data_received;
 }
 
-GtkWindow *
-vnr_window_new() {
-    VnrWindow *p_vnr_window = g_object_new(VNR_TYPE_WINDOW, NULL);
+//TODO: separate
+GtkWindow * vnr_window_new() {
+    if(_main_window != nullptr) {
+        return (GtkWindow *) _main_window;
+    }
+
+    _main_window = g_object_new(VNR_TYPE_WINDOW, NULL);
 
     //TODO
-    vnr_register_dbus_service();
+    vnr_dbus_register();
 
-    return (GtkWindow *) p_vnr_window;
+    return (GtkWindow *) _main_window;
 }
 
 static void
@@ -2809,6 +2818,34 @@ vnr_window_toggle_fullscreen (VnrWindow *window)
 void vnr_window_toggle_use_existing_process (const VnrWindow *window) {
     if(window->prefs->use_existing_process) {
         g_message("Switch to true on use_existing_process, send quit on another instances");
-        vnr_send_quit();
+        vnr_dbus_send_quit();
     }
+}
+
+VnrWindow* vnr_window_get_main() {
+    return _main_window;
+}
+
+//TODO: separate and add slot/signals
+void vnr_window_parse_and_show(gchar **files) {
+    GtkWindow *window = (GtkWindow *) _main_window;
+
+    //TODO
+    gtk_window_set_default_size (window, 480, 300);
+    gtk_window_set_keep_above(window, true);
+    gtk_window_set_position (window, GTK_WIN_POS_CENTER_ON_PARENT);
+
+    GSList *uri_list = vnr_tools_get_list_from_array (files);
+    GList *file_list = nullptr;
+    GError *error = nullptr;
+
+    vnr_window_open_from_list(_main_window, uri_list);
+
+    //TODO
+    // VNR_WINDOW(window)->prefs->start_slideshow = slideshow;
+    // VNR_WINDOW(window)->prefs->start_fullscreen = fullscreen;
+    // if ( VNR_WINDOW(window)->prefs->start_maximized ) {
+    //     gtk_window_maximize(window);
+    // }
+    gtk_widget_show (GTK_WIDGET (window));
 }

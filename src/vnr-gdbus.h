@@ -7,13 +7,15 @@
 
 G_BEGIN_DECLS
 
-gboolean vnr_register_dbus_service();
+gboolean vnr_dbus_register();
 
-void vnr_close_dbus_service();
+void vnr_dbus_close();
 
-gboolean vnr_send_switch_and_focus(gint argc, gchar **argv);
+gboolean vnr_dbus_send_switch_and_focus(gchar **files);
 
-gboolean vnr_send_quit();
+gboolean vnr_dbus_send_quit();
+
+gboolean vnr_dbus_send_ping_pong();
 
 G_END_DECLS
 

@@ -132,5 +132,8 @@ void     vnr_window_apply_preferences (VnrWindow *window);
 void     vnr_window_toggle_fullscreen (VnrWindow *win);
 void     vnr_window_toggle_use_existing_process (const VnrWindow *window);
 
+VnrWindow* vnr_window_get_main();
+void vnr_window_parse_and_show(gchar **files);
+
 G_END_DECLS
 #endif /* __VNR_WINDOW_H__ */
