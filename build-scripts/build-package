@@ -1,0 +1,16 @@
+#!/bin/bash
+
+cd "$(dirname "$0")" || exit
+
+rm -rf src
+mkdir src
+mkdir src/build
+
+cp -r ../data src/data
+cp -r ../man src/man
+cp -r ../po src/po
+cp -r ../src src/src
+cp ../meson.build src/meson.build
+cp ../meson_post_install.py src/meson_post_install.py
+
+makepkg -f

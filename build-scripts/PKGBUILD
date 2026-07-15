@@ -1,0 +1,19 @@
+pkgname=viewnior
+pkgver=1.9
+pkgrel=1
+pkgdesc="A simple, fast and elegant image viewer program"
+arch=('x86_64')
+url="https://github.com/dmsleptsov/Viewnior"
+license=('GPL-3.0-only')
+depends=('gtk3' 'exiv2')
+makedepends=('meson' 'glib2-devel')
+source=()
+
+build() {
+  arch-meson build .
+  ninja -C build
+}
+
+package() {
+  DESTDIR="$pkgdir" meson install -C build
+}

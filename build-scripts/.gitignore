@@ -1,0 +1,7 @@
+data
+man
+pkg
+po
+src
+meson.build
+*.zst
