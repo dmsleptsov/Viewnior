@@ -104,6 +104,7 @@ struct _VnrPrefs {
     int slideshow_timeout;
     int jpeg_quality;
     int png_compression;
+    gboolean use_existing_process;
 
     GtkWidget *dialog;
     GtkWidget *vnr_win;

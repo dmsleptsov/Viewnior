@@ -57,6 +57,12 @@ toggle_dark_background_cb (GtkToggleButton *togglebutton, gpointer user_data)
     vnr_window_apply_preferences(VNR_WINDOW(VNR_PREFS(user_data)->vnr_win));
 }
 
+static void toggle_use_existing_process_cb(GtkToggleButton *togglebutton, gpointer user_data) {
+    VNR_PREFS(user_data)->use_existing_process = gtk_toggle_button_get_active(togglebutton);
+    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_window_toggle_use_existing_process(VNR_WINDOW(VNR_PREFS(user_data)->vnr_win));
+}
+
 static void
 toggle_fit_on_fullscreen_cb (GtkToggleButton *togglebutton, gpointer user_data)
 {
@@ -187,6 +193,7 @@ vnr_prefs_set_default(VnrPrefs *prefs)
     prefs->start_slideshow = FALSE;
     prefs->start_fullscreen = FALSE;
     prefs->auto_resize = FALSE;
+    prefs->use_existing_process = TRUE;
     prefs->desktop = VNR_PREFS_DESKTOP_AUTO;
 }
 
@@ -200,6 +207,7 @@ build_dialog (VnrPrefs *prefs)
     GObject *close_button;
     GtkToggleButton *show_hidden;
     GtkToggleButton *dark_background;
+    GtkToggleButton *use_existing_process;
     GtkToggleButton *fit_on_fullscreen;
     GtkBox *zoom_mode_box;
     GtkComboBoxText *zoom_mode;
@@ -243,6 +251,11 @@ build_dialog (VnrPrefs *prefs)
     dark_background = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "dark_background"));
     gtk_toggle_button_set_active( dark_background, prefs->dark_background );
     g_signal_connect(G_OBJECT(dark_background), "toggled", G_CALLBACK(toggle_dark_background_cb), prefs);
+
+    /* Use Existing Process checkbox*/
+    use_existing_process = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "use_existing_process"));
+    gtk_toggle_button_set_active( use_existing_process, prefs->use_existing_process );
+    g_signal_connect(G_OBJECT(use_existing_process), "toggled", G_CALLBACK(toggle_use_existing_process_cb), prefs);
 
     /* Fit on fullscreen checkbox */
     fit_on_fullscreen = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "fit_on_fullscreen"));
@@ -400,6 +413,7 @@ vnr_prefs_load (VnrPrefs *prefs, GError **error)
     VNR_PREF_LOAD_KEY (jpeg_quality, integer, "jpeg-quality", 90);
     VNR_PREF_LOAD_KEY (png_compression, integer, "png-compression", 9);
     VNR_PREF_LOAD_KEY (desktop, integer, "desktop", VNR_PREFS_DESKTOP_AUTO);
+    VNR_PREF_LOAD_KEY (use_existing_process, boolean, "use-existing-process", TRUE);
 
     g_key_file_free (conf);
 
@@ -488,6 +502,7 @@ vnr_prefs_save (VnrPrefs *prefs)
     g_key_file_set_integer (conf, "prefs", "jpeg-quality", prefs->jpeg_quality);
     g_key_file_set_integer (conf, "prefs", "png-compression", prefs->png_compression);
     g_key_file_set_integer (conf, "prefs", "desktop", prefs->desktop);
+    g_key_file_set_boolean (conf, "prefs", "use-existing-process", prefs->use_existing_process);
 
     if(g_mkdir_with_parents (dir, 0700) != 0)
         g_warning("Error creating config file's parent directory (%s)\n", dir);

@@ -1,5 +1,8 @@
-project('viewnior', 'c', 'cpp',
-  version: '1.8',
+project(
+  'viewnior',
+  'c',
+  'cpp',
+  version: '1.8.1',
   license: 'GPL3+',
   meson_version: '>= 0.43.0'
 )
@@ -12,9 +15,6 @@ datadir = get_option('datadir')
 
 # Compiler variables
 cc = meson.get_compiler('c')
-#
-
-# Imports
 gnome = import('gnome')
 i18n = import('i18n')
 #
@@ -23,7 +23,7 @@ i18n = import('i18n')
 glib_ver = '>= 2.32'
 
 viewnior_deps = [
-  dependency('gtk+-2.0', version: '>= 2.20'),
+  dependency('gtk+-3.0'),
   dependency('glib-2.0', version: glib_ver),
   dependency('gio-2.0', version: glib_ver),
   dependency('shared-mime-info', version: '>= 0.20'),

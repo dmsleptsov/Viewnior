@@ -45,16 +45,11 @@ static GOptionEntry opt_entries[] = {
     {NULL}
 };
 
-int
-main (int argc, char *argv[])
+gint
+main (gint argc, gchar **argv)
 {
     GError *error = NULL;
     GOptionContext *opt_context;
-    GtkWindow *window;
-
-    GSList *uri_list = NULL;
-    GList *file_list = NULL;
-
 
     bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
     bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
@@ -80,56 +75,13 @@ main (int argc, char *argv[])
 
     gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(), PIXMAP_DIR);
 
-    window = vnr_window_new ();
-    gtk_window_set_default_size (window, 480, 300);
-    gtk_window_set_position (window, GTK_WIN_POS_CENTER);
+    vnr_window_new();
 
-    uri_list = vnr_tools_get_list_from_array (files);
-
-    if(uri_list != NULL)
-    {
-        if (g_slist_length(uri_list) == 1)
-        {
-            vnr_file_load_single_uri (uri_list->data, &file_list, VNR_WINDOW(window)->prefs->show_hidden, &error);
-        }
-        else
-        {
-            vnr_file_load_uri_list (uri_list, &file_list, VNR_WINDOW(window)->prefs->show_hidden, &error);
-        }
-
-        if(error != NULL && file_list != NULL)
-        {
-            deny_slideshow(VNR_WINDOW(window));
-            vnr_message_area_show(VNR_MESSAGE_AREA (VNR_WINDOW(window)->msg_area),
-                                  TRUE, error->message, TRUE);
-            vnr_window_set_list(VNR_WINDOW(window), file_list, TRUE);
-        }
-        else if(error != NULL)
-        {
-            deny_slideshow(VNR_WINDOW(window));
-            vnr_message_area_show(VNR_MESSAGE_AREA (VNR_WINDOW(window)->msg_area),
-                                  TRUE, error->message, TRUE);
-        }
-        else if(file_list == NULL)
-        {
-            deny_slideshow(VNR_WINDOW(window));
-            vnr_message_area_show(VNR_MESSAGE_AREA (VNR_WINDOW(window)->msg_area),
-                                  TRUE, _("The given locations contain no images."),
-                                  TRUE);
-        }
-        else
-        {
-            vnr_window_set_list(VNR_WINDOW(window), file_list, TRUE);
-        }
+    if (vnr_window_get_main()->prefs->use_existing_process && vnr_dbus_send_ping_pong()) {
+        vnr_dbus_send_switch_and_focus(files);
+    } else {
+        vnr_window_parse_and_show(files);
+        gtk_main();
     }
-    
-    VNR_WINDOW(window)->prefs->start_slideshow = slideshow;
-    VNR_WINDOW(window)->prefs->start_fullscreen = fullscreen;
-    if ( VNR_WINDOW(window)->prefs->start_maximized ) {
-    	gtk_window_maximize(window);
-    }
-    gtk_widget_show (GTK_WIDGET (window));
-    gtk_main ();
-
     return 0;
 }
