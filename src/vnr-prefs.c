@@ -65,13 +65,6 @@ static void toggle_use_existing_process_cb(GtkToggleButton *togglebutton, gpoint
 }
 
 static void
-toggle_fit_on_fullscreen_cb (GtkToggleButton *togglebutton, gpointer user_data)
-{
-    VNR_PREFS(user_data)->fit_on_fullscreen = gtk_toggle_button_get_active(togglebutton);
-    vnr_prefs_save(VNR_PREFS(user_data));
-}
-
-static void
 toggle_smooth_images_cb (GtkToggleButton *togglebutton, gpointer user_data)
 {
     VNR_PREFS(user_data)->smooth_images = gtk_toggle_button_get_active(togglebutton);
@@ -142,18 +135,6 @@ change_action_modify_cb (GtkComboBox *widget, gpointer user_data)
     vnr_prefs_save(VNR_PREFS(user_data));
 }
 
-static void
-change_spin_value_cb (GtkSpinButton *spinbutton, gpointer user_data)
-{
-    int new_value;
-
-    new_value = gtk_spin_button_get_value_as_int (spinbutton);
-
-    VNR_PREFS(user_data)->slideshow_timeout = new_value;
-    vnr_prefs_save(VNR_PREFS(user_data));
-    vnr_window_apply_preferences(VNR_WINDOW(VNR_PREFS(user_data)->vnr_win));
-}
-
 static gboolean
 key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
@@ -176,10 +157,8 @@ vnr_prefs_set_default(VnrPrefs *prefs)
     prefs->zoom = VNR_PREFS_ZOOM_SMART;
     prefs->show_hidden = FALSE;
     prefs->dark_background = FALSE;
-    prefs->fit_on_fullscreen = TRUE;
     prefs->smooth_images = TRUE;
     prefs->confirm_delete = TRUE;
-    prefs->slideshow_timeout = 5;
     prefs->behavior_wheel = VNR_PREFS_WHEEL_ZOOM;
     prefs->behavior_click = VNR_PREFS_CLICK_ZOOM;
     prefs->behavior_modify = VNR_PREFS_MODIFY_ASK;
@@ -190,9 +169,6 @@ vnr_prefs_set_default(VnrPrefs *prefs)
     prefs->show_toolbar = TRUE;
     prefs->show_scrollbar = TRUE;
     prefs->show_statusbar = FALSE;
-    prefs->start_maximized = FALSE;
-    prefs->start_slideshow = FALSE;
-    prefs->start_fullscreen = FALSE;
     prefs->auto_resize = FALSE;
     prefs->use_existing_process = TRUE;
     prefs->desktop = VNR_PREFS_DESKTOP_AUTO;
@@ -209,13 +185,11 @@ build_dialog (VnrPrefs *prefs)
     GtkToggleButton *show_hidden;
     GtkToggleButton *dark_background;
     GtkToggleButton *use_existing_process;
-    GtkToggleButton *fit_on_fullscreen;
     GtkBox *zoom_mode_box;
     GtkComboBoxText *zoom_mode;
     GtkToggleButton *smooth_images;
     GtkToggleButton *confirm_delete;
     GtkToggleButton *reload_on_save;
-    GtkSpinButton *slideshow_timeout;
     GtkTable *behavior_table;
     GtkComboBoxText *action_wheel;
     GtkComboBoxText *action_click;
@@ -258,11 +232,6 @@ build_dialog (VnrPrefs *prefs)
     gtk_toggle_button_set_active( use_existing_process, prefs->use_existing_process );
     g_signal_connect(G_OBJECT(use_existing_process), "toggled", G_CALLBACK(toggle_use_existing_process_cb), prefs);
 
-    /* Fit on fullscreen checkbox */
-    fit_on_fullscreen = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "fit_on_fullscreen"));
-    gtk_toggle_button_set_active( fit_on_fullscreen, prefs->fit_on_fullscreen );
-    g_signal_connect(G_OBJECT(fit_on_fullscreen), "toggled", G_CALLBACK(toggle_fit_on_fullscreen_cb), prefs);
-
     /* Smooth images checkbox */
     smooth_images = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "smooth_images"));
     gtk_toggle_button_set_active( smooth_images, prefs->smooth_images );
@@ -277,12 +246,6 @@ build_dialog (VnrPrefs *prefs)
     reload_on_save = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "reload"));
     gtk_toggle_button_set_active( reload_on_save, prefs->reload_on_save );
     g_signal_connect(G_OBJECT(reload_on_save), "toggled", G_CALLBACK(toggle_reload_on_save_cb), prefs);
-
-    /* Slideshow timeout spin button */
-    slideshow_timeout = GTK_SPIN_BUTTON (gtk_builder_get_object (builder, "slideshow_timeout"));
-    gtk_spin_button_set_value( slideshow_timeout, (gdouble)prefs->slideshow_timeout);
-    prefs->slideshow_timeout_widget = slideshow_timeout;
-    g_signal_connect(G_OBJECT(slideshow_timeout), "value-changed", G_CALLBACK(change_spin_value_cb), prefs);
 
     /* JPEG quality scale */
     jpeg_scale = GTK_RANGE (gtk_builder_get_object (builder, "jpeg_scale"));
@@ -395,7 +358,6 @@ vnr_prefs_load (VnrPrefs *prefs, GError **error)
     }
 
     VNR_PREF_LOAD_KEY (zoom, integer, "zoom-mode", VNR_PREFS_ZOOM_SMART);
-    VNR_PREF_LOAD_KEY (fit_on_fullscreen, boolean, "fit-on-fullscreen", TRUE);
     VNR_PREF_LOAD_KEY (show_hidden, boolean, "show-hidden", FALSE);
     VNR_PREF_LOAD_KEY (dark_background, boolean, "dark-background", FALSE);
     VNR_PREF_LOAD_KEY (smooth_images, boolean, "smooth-images", TRUE);
@@ -405,8 +367,6 @@ vnr_prefs_load (VnrPrefs *prefs, GError **error)
     VNR_PREF_LOAD_KEY (show_toolbar, boolean, "show-toolbar", TRUE);
     VNR_PREF_LOAD_KEY (show_scrollbar, boolean, "show-scrollbar", TRUE);
     VNR_PREF_LOAD_KEY (show_statusbar, boolean, "show-statusbar", FALSE);
-    VNR_PREF_LOAD_KEY (start_maximized, boolean, "start-maximized", FALSE);
-    VNR_PREF_LOAD_KEY (slideshow_timeout, integer, "slideshow-timeout", 5);
     VNR_PREF_LOAD_KEY (auto_resize, boolean, "auto-resize", FALSE);
     VNR_PREF_LOAD_KEY (behavior_wheel, integer, "behavior-wheel", VNR_PREFS_WHEEL_ZOOM);
     VNR_PREF_LOAD_KEY (behavior_click, integer, "behavior-click", VNR_PREFS_CLICK_ZOOM);
@@ -488,7 +448,6 @@ vnr_prefs_save (VnrPrefs *prefs)
 
     conf = g_key_file_new();
     g_key_file_set_integer (conf, "prefs", "zoom-mode", prefs->zoom);
-    g_key_file_set_boolean (conf, "prefs", "fit-on-fullscreen", prefs->fit_on_fullscreen);
     g_key_file_set_boolean (conf, "prefs", "show-hidden", prefs->show_hidden);
     g_key_file_set_boolean (conf, "prefs", "dark-background", prefs->dark_background);
     g_key_file_set_boolean (conf, "prefs", "smooth-images", prefs->smooth_images);
@@ -498,8 +457,6 @@ vnr_prefs_save (VnrPrefs *prefs)
     g_key_file_set_boolean (conf, "prefs", "show-toolbar", prefs->show_toolbar);
     g_key_file_set_boolean (conf, "prefs", "show-scrollbar", prefs->show_scrollbar);
     g_key_file_set_boolean (conf, "prefs", "show-statusbar", prefs->show_statusbar);
-    g_key_file_set_boolean (conf, "prefs", "start-maximized", prefs->start_maximized);
-    g_key_file_set_integer (conf, "prefs", "slideshow-timeout", prefs->slideshow_timeout);
     g_key_file_set_boolean (conf, "prefs", "auto-resize", prefs->auto_resize);
     g_key_file_set_integer (conf, "prefs", "behavior-wheel", prefs->behavior_wheel);
     g_key_file_set_integer (conf, "prefs", "behavior-click", prefs->behavior_click);
@@ -544,13 +501,6 @@ vnr_prefs_save (VnrPrefs *prefs)
     g_free((char*)path);
 
     return TRUE;
-}
-
-void
-vnr_prefs_set_slideshow_timeout (VnrPrefs *prefs, int value)
-{
-    if (prefs->dialog != NULL)
-        gtk_spin_button_set_value(prefs->slideshow_timeout_widget, (gdouble)value);
 }
 
 void
