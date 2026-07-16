@@ -32,16 +32,12 @@
 
 static gchar **files = NULL;     //array of files specified to be opened
 static gboolean version = FALSE;
-static gboolean slideshow = FALSE;
-static gboolean fullscreen = FALSE;
 
 /* List of option entries
  * The only option is for specifying file to be opened. */
 static GOptionEntry opt_entries[] = {
     {G_OPTION_REMAINING, 0, 0, G_OPTION_ARG_FILENAME_ARRAY, &files, NULL, "[FILE]"},
     {"version", 0, 0, G_OPTION_ARG_NONE, &version, NULL, NULL},
-    {"slideshow", 0, 0, G_OPTION_ARG_NONE, &slideshow, NULL, NULL},
-    {"fullscreen", 0, 0, G_OPTION_ARG_NONE, &fullscreen, NULL, NULL},
     {NULL}
 };
 

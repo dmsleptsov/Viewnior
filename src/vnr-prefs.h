@@ -67,7 +67,6 @@ typedef enum{
 
 typedef enum{
     VNR_PREFS_CLICK_ZOOM ,
-    VNR_PREFS_CLICK_FULLSCREEN ,
     VNR_PREFS_CLICK_NEXT ,
 } VnrPrefsClick;
 
@@ -93,7 +92,6 @@ struct _VnrPrefs {
     VnrPrefsWheel behavior_wheel;
     VnrPrefsClick behavior_click;
     VnrPrefsModify behavior_modify;
-    gboolean fit_on_fullscreen;
     gboolean show_hidden;
     gboolean smooth_images;
     gboolean confirm_delete;
@@ -102,20 +100,14 @@ struct _VnrPrefs {
     gboolean show_toolbar;
     gboolean show_scrollbar;
     gboolean show_statusbar;
-    gboolean start_maximized;
-    gboolean start_slideshow;
-    gboolean start_fullscreen;
     gboolean auto_resize;
     gboolean dark_background;
-    int slideshow_timeout;
     int jpeg_quality;
     int png_compression;
     gboolean use_existing_process;
 
     GtkWidget *dialog;
     GtkWidget *vnr_win;
-
-    GtkSpinButton *slideshow_timeout_widget;
 
     GIntPair last_size;
     GIntPair last_position;
@@ -129,7 +121,6 @@ GType     vnr_prefs_get_type (void) G_GNUC_CONST;
 
 GObject*  vnr_prefs_new (GtkWidget *window);
 void      vnr_prefs_show_dialog (VnrPrefs *prefs);
-void      vnr_prefs_set_slideshow_timeout (VnrPrefs *prefs, int value);
 void      vnr_prefs_set_show_menu_bar     (VnrPrefs *prefs, gboolean show_menu_bar);
 void      vnr_prefs_set_show_toolbar      (VnrPrefs *prefs, gboolean show_toolbar);
 void      vnr_prefs_set_show_scrollbar    (VnrPrefs *prefs, gboolean show_scollbar);

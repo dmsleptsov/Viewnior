@@ -38,12 +38,6 @@ typedef struct _VnrWindowClass VnrWindowClass;
 #define VNR_IS_WINDOW_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE ((klass),  VNR_TYPE_WINDOW))
 #define VNR_WINDOW_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS ((obj),  VNR_TYPE_WINDOW, VnrWindowClass))
 
-typedef enum {
-    VNR_WINDOW_MODE_NORMAL,
-    VNR_WINDOW_MODE_FULLSCREEN,
-    VNR_WINDOW_MODE_SLIDESHOW,
-} VnrWindowMode;
-
 struct _VnrWindow {
     GtkWindow win;
 
@@ -88,25 +82,14 @@ struct _VnrWindow {
     gint current_image_height;
     gint current_image_width;
 
-    VnrWindowMode mode;
     guint8 modifications;
 
     gboolean cursor_is_hidden;
 
-    /* Fullscreen (fs) variables */
     GtkWidget *fs_controls;
-    GtkWidget *toggle_btn;
     GtkWidget *fs_seconds_label;
     GtkWidget *fs_filename_label;
-    GSource *fs_source;
-    gboolean disable_autohide;
-    /* Slideshow (ss) variables */
-    gboolean slideshow;
-    guint ss_source_tag;
-    gint ss_timeout;
-    GtkWidget *ss_timeout_widget;
 
-    GtkActionGroup *action_wallpaper;
     gboolean one_shot_process;
 };
 
@@ -129,9 +112,7 @@ gboolean vnr_window_next     (VnrWindow *win, gboolean rem_timeout);
 gboolean vnr_window_prev     (VnrWindow *win);
 gboolean vnr_window_first    (VnrWindow *win);
 gboolean vnr_window_last     (VnrWindow *win);
-void     deny_slideshow      (VnrWindow *window);
 void     vnr_window_apply_preferences (VnrWindow *window);
-void     vnr_window_toggle_fullscreen (VnrWindow *win);
 void     vnr_window_toggle_use_existing_process (const VnrWindow *window);
 
 VnrWindow* vnr_window_get_main();

@@ -571,12 +571,7 @@ uni_image_view_button_press (GtkWidget * widget, GdkEventButton * ev)
     VnrWindow *vnr_win = VNR_WINDOW(gtk_widget_get_toplevel(widget));
     g_assert(gtk_widget_is_toplevel(GTK_WIDGET(vnr_win)));
 
-    if(ev->type == GDK_2BUTTON_PRESS && ev->button == 1 && vnr_win->prefs->behavior_click == VNR_PREFS_CLICK_FULLSCREEN)
-    {
-        vnr_window_toggle_fullscreen(vnr_win);
-        return 1;
-    }
-    else if(ev->type == GDK_2BUTTON_PRESS && ev->button == 1 && vnr_win->prefs->behavior_click == VNR_PREFS_CLICK_NEXT)
+    if(ev->type == GDK_2BUTTON_PRESS && ev->button == 1 && vnr_win->prefs->behavior_click == VNR_PREFS_CLICK_NEXT)
     {
         int width = gdk_window_get_width(gtk_widget_get_window(widget));
 
