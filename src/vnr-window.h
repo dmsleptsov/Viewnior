@@ -78,6 +78,7 @@ struct _VnrWindow {
 
     GList *file_list;
 
+    //TODO: separate
     VnrPrefs *prefs;
 
     gint max_width;
@@ -106,6 +107,7 @@ struct _VnrWindow {
     GtkWidget *ss_timeout_widget;
 
     GtkActionGroup *action_wallpaper;
+    gboolean one_shot_process;
 };
 
 struct _VnrWindowClass {
@@ -134,6 +136,11 @@ void     vnr_window_toggle_use_existing_process (const VnrWindow *window);
 
 VnrWindow* vnr_window_get_main();
 void vnr_window_parse_and_show(gchar **files);
+
+GIntPair vnr_window_get_position();
+GIntPair vnr_window_get_size();
+
+void vnr_window_destroy();
 
 G_END_DECLS
 #endif /* __VNR_WINDOW_H__ */
