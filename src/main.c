@@ -78,7 +78,9 @@ main (gint argc, gchar **argv)
     vnr_window_new();
 
     if (vnr_window_get_main()->prefs->use_existing_process && vnr_dbus_send_ping_pong()) {
+        vnr_window_get_main()->one_shot_process = true;
         vnr_dbus_send_switch_and_focus(files);
+        vnr_window_destroy();
     } else {
         vnr_window_parse_and_show(files);
         gtk_main();

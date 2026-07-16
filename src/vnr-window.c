@@ -1121,12 +1121,16 @@ window_change_state_cb (GtkWidget * widget, GdkEventWindowState * event, gpointe
     return TRUE;
 }
 
-//TODO: When emit signal by name ('destroy') calling twice
-static void window_destroy_cb (GtkWidget *widget, gpointer user_data) {
+static gboolean window_destroy_cb (GtkWidget *widget, gpointer user_data) {
     vnr_window_save_accel_map();
     vnr_prefs_save(VNR_WINDOW(widget)->prefs);
     vnr_dbus_close();
     gtk_main_quit();
+    return true;
+}
+
+void vnr_window_destroy () {
+    window_destroy_cb(GTK_WIDGET(_main_window), nullptr);
 }
 
 static void
@@ -2152,6 +2156,21 @@ GtkWindow * vnr_window_new() {
 
     _main_window = g_object_new(VNR_TYPE_WINDOW, NULL);
 
+    const GIntPair last_position = _main_window->prefs->last_position;
+    if(last_position.a >= 0 && last_position.b >= 0) {
+        gtk_window_move((GtkWindow *)_main_window, last_position.a, last_position.b);
+    } else {
+        gtk_window_set_position ((GtkWindow *)_main_window, GTK_WIN_POS_MOUSE);
+    }
+
+    gint w = 480, h = 300;
+    const GIntPair last_size = _main_window->prefs->last_size;
+    if(last_size.a > 0 && last_size.b > 0) {
+        w = last_size.a;
+        h = last_size.b;
+    }
+    gtk_window_set_default_size ((GtkWindow *)_main_window, w, h);
+
     //TODO
     vnr_dbus_register();
 
@@ -2437,13 +2456,10 @@ vnr_window_init (VnrWindow * window)
     vnr_window_set_drag(window);
 
     g_signal_connect (G_OBJECT (window), "destroy",
-                      G_CALLBACK (window_destroy_cb), NULL);
+                      G_CALLBACK (vnr_window_destroy), NULL);
 
-    g_signal_connect (G_OBJECT (window), "realize",
-                      G_CALLBACK (window_realize_cb), NULL);
-
-    g_signal_connect (G_OBJECT (window), "window-state-event",
-                      G_CALLBACK (window_change_state_cb), NULL);
+    g_signal_connect (G_OBJECT (window), "delete-event",
+              G_CALLBACK (vnr_window_destroy), NULL);
 
     g_signal_connect (G_OBJECT (window->view), "zoom_changed",
                       G_CALLBACK (zoom_changed_cb), window);
@@ -2817,7 +2833,6 @@ vnr_window_toggle_fullscreen (VnrWindow *window)
 
 void vnr_window_toggle_use_existing_process (const VnrWindow *window) {
     if(window->prefs->use_existing_process) {
-        g_message("Switch to true on use_existing_process, send quit on another instances");
         vnr_dbus_send_quit();
     }
 }
@@ -2830,22 +2845,23 @@ VnrWindow* vnr_window_get_main() {
 void vnr_window_parse_and_show(gchar **files) {
     GtkWindow *window = (GtkWindow *) _main_window;
 
-    //TODO
-    gtk_window_set_default_size (window, 480, 300);
-    gtk_window_set_keep_above(window, true);
-    gtk_window_set_position (window, GTK_WIN_POS_CENTER_ON_PARENT);
-
     GSList *uri_list = vnr_tools_get_list_from_array (files);
-    GList *file_list = nullptr;
-    GError *error = nullptr;
-
     vnr_window_open_from_list(_main_window, uri_list);
 
-    //TODO
-    // VNR_WINDOW(window)->prefs->start_slideshow = slideshow;
-    // VNR_WINDOW(window)->prefs->start_fullscreen = fullscreen;
-    // if ( VNR_WINDOW(window)->prefs->start_maximized ) {
-    //     gtk_window_maximize(window);
-    // }
+    gtk_window_present(window);
     gtk_widget_show (GTK_WIDGET (window));
+}
+
+GIntPair vnr_window_get_position() {
+    gint x, y;
+    gtk_window_get_position((GtkWindow *) _main_window, &x, &y);
+    GIntPair result = {x, y};
+    return result;
+}
+
+GIntPair vnr_window_get_size() {
+    gint w, h;
+    gtk_window_get_size((GtkWindow *) _main_window, &w, &h);
+    GIntPair result = {w, h};
+    return result;
 }

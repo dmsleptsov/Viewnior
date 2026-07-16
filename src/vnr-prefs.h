@@ -77,6 +77,12 @@ typedef enum{
     VNR_PREFS_MODIFY_IGNORE ,
 } VnrPrefsModify;
 
+typedef struct {
+    gint a;
+    gint b;
+} GIntPair;
+
+
 struct _VnrPrefs {
     GObject parent;
 
@@ -110,6 +116,9 @@ struct _VnrPrefs {
     GtkWidget *vnr_win;
 
     GtkSpinButton *slideshow_timeout_widget;
+
+    GIntPair last_size;
+    GIntPair last_position;
 };
 
 struct _VnrPrefsClass {

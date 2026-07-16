@@ -32,7 +32,7 @@ static void gdbus_signal_received(GDBusConnection *connection,
 
     if (g_strcmp0(signal_name, VNR_DBUS_METHOD_QUIT) == 0) {
         g_warning("Call force quit on '%s' signal", signal_name);
-        g_signal_emit_by_name(vnr_window_get_main(), "destroy");
+        vnr_window_destroy();
     } else {
         g_warning("Unknown signal '%s' will be skipped", signal_name);
     }

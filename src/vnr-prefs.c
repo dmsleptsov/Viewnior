@@ -37,6 +37,7 @@ G_DEFINE_TYPE (VnrPrefs, vnr_prefs, G_TYPE_OBJECT);
  * @DEF: Default value for the preference.
  */
 #define VNR_PREF_LOAD_KEY(PK, PT, KN, DEF)  prefs-> PK = g_key_file_get_ ## PT (conf, "prefs", KN, &read_error); if(read_error != NULL) { prefs-> PK = DEF; g_clear_error(&read_error); }
+#define VNR_PREF_LOAD_KEY_SECTION(PK, PT, KN, DEF, SECTION)  prefs-> PK = g_key_file_get_ ## PT (conf, SECTION, KN, &read_error); if(read_error != NULL) { prefs-> PK = DEF; g_clear_error(&read_error); }
 
 /*************************************************************/
 /***** Private signal handlers *******************************/
@@ -414,6 +415,10 @@ vnr_prefs_load (VnrPrefs *prefs, GError **error)
     VNR_PREF_LOAD_KEY (png_compression, integer, "png-compression", 9);
     VNR_PREF_LOAD_KEY (desktop, integer, "desktop", VNR_PREFS_DESKTOP_AUTO);
     VNR_PREF_LOAD_KEY (use_existing_process, boolean, "use-existing-process", TRUE);
+    VNR_PREF_LOAD_KEY_SECTION (last_size.a, integer, "size.w", -1, "last-values");
+    VNR_PREF_LOAD_KEY_SECTION (last_size.b, integer, "size.h", -1, "last-values");
+    VNR_PREF_LOAD_KEY_SECTION (last_position.a, integer, "position.x", -1, "last-values");
+    VNR_PREF_LOAD_KEY_SECTION (last_position.b, integer, "position.y", -1, "last-values");
 
     g_key_file_free (conf);
 
@@ -503,6 +508,21 @@ vnr_prefs_save (VnrPrefs *prefs)
     g_key_file_set_integer (conf, "prefs", "png-compression", prefs->png_compression);
     g_key_file_set_integer (conf, "prefs", "desktop", prefs->desktop);
     g_key_file_set_boolean (conf, "prefs", "use-existing-process", prefs->use_existing_process);
+
+    GIntPair size = {prefs->last_size.a, prefs->last_size.b};
+    GIntPair position = {prefs->last_position.a, prefs->last_position.b};
+    if (!vnr_window_get_main()->one_shot_process) {
+        const auto current_size = vnr_window_get_size();
+        size.a = current_size.a;
+        size.b = current_size.b;
+        const auto current_position = vnr_window_get_position();
+        position.a = current_position.a;
+        position.b = current_position.b;
+    }
+    g_key_file_set_integer(conf, "last-values", "size.w", size.a);
+    g_key_file_set_integer(conf, "last-values", "size.h", size.b);
+    g_key_file_set_integer(conf, "last-values", "position.x", position.a);
+    g_key_file_set_integer(conf, "last-values", "position.y", position.b);
 
     if(g_mkdir_with_parents (dir, 0700) != 0)
         g_warning("Error creating config file's parent directory (%s)\n", dir);
