@@ -2141,8 +2141,13 @@ VnrWindow* vnr_window_get_main() {
 }
 
 //TODO: separate and add slot/signals
-void vnr_window_parse_and_show(gchar **files) {
+void vnr_window_parse_and_show(gchar **files, gchar* startup_id) {
     GtkWindow *window = (GtkWindow *) _main_window;
+
+    if (startup_id != nullptr && strlen(startup_id) > 0) {
+        g_info("Passing new '%s' startup id", startup_id);
+        gtk_window_set_startup_id(window, startup_id);
+    }
 
     GSList *uri_list = vnr_tools_get_list_from_array (files);
     vnr_window_open_from_list(_main_window, uri_list);

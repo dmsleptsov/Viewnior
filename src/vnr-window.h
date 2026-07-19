@@ -114,7 +114,7 @@ void     vnr_window_apply_preferences (VnrWindow *window);
 void     vnr_window_toggle_use_existing_process (const VnrWindow *window);
 
 VnrWindow* vnr_window_get_main();
-void vnr_window_parse_and_show(gchar **files);
+void vnr_window_parse_and_show(gchar **files, gchar* startup_id);
 
 GIntPair vnr_window_get_position();
 GIntPair vnr_window_get_size();

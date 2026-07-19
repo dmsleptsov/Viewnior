@@ -46,6 +46,11 @@ gint main(gint argc, gchar **argv) {
     bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
     textdomain(GETTEXT_PACKAGE);
 
+    gchar *startup_id = getenv("DESKTOP_STARTUP_ID");
+    if (startup_id != nullptr) {
+        g_info("Started with '%s' startup id", startup_id);
+    }
+
     GError *error = nullptr;
     if (!gtk_init_with_args(&argc, &argv, "- Elegant Image Viewer", opt_entries, nullptr, &error)) {
         printf("%s\nRun 'viewnior --help' to see a full list of available command line options.\n",
@@ -62,10 +67,10 @@ gint main(gint argc, gchar **argv) {
     vnr_dbus_register();
 
     if (vnr_config_get()->use_existing_process && vnr_dbus_send_ping_pong()) {
-        vnr_dbus_send_switch_and_focus(files);
+        vnr_dbus_send_switch_and_focus(files, startup_id);
     } else {
         vnr_window_new();
-        vnr_window_parse_and_show(files);
+        vnr_window_parse_and_show(files, nullptr);
         gtk_main();
     }
 

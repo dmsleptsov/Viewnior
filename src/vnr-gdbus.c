@@ -14,6 +14,8 @@
 static guint _signals_reg_id = DEFAULT_REG_ID;
 static guint _methods_reg_id = DEFAULT_REG_ID;
 static GDBusConnection *_connection = nullptr;
+static gchar *_empty_string_array[] = {nullptr};
+static const gchar *_empty_string = "";
 
 static void gdbus_signal_received(GDBusConnection *connection,
                                   const gchar *sender,
@@ -78,9 +80,10 @@ static void gdbus_method_call(GDBusConnection *connection,
         g_dbus_method_invocation_return_value(invocation, parameters);
     } else if (g_strcmp0(method_name, VNR_DBUS_METHOD_SWITCH) == 0) {
         gchar **files = nullptr;
-        g_variant_get(parameters, "(^as)", &files);
+        gchar *startup_id = nullptr;
+        g_variant_get(parameters, "(^ass)", &files, &startup_id);
 
-        vnr_window_parse_and_show(files);
+        vnr_window_parse_and_show(files, startup_id);
 
         g_free(files);
         g_dbus_method_invocation_return_value(invocation, nullptr);
@@ -96,6 +99,7 @@ static guint subscribe_methods(GDBusConnection *connection) {
                 "<interface name='" VNR_DBUS_INTERFACE "'>"
                     "<method name='" VNR_DBUS_METHOD_SWITCH "'>"
                         "<arg type='as' name='files' direction='in'/>"
+                        "<arg type='s' name='startup_id' direction='in'/>"
                     "</method>"
                     "<method name='" VNR_DBUS_METHOD_PING "'/>"
                 "</interface>"
@@ -241,20 +245,18 @@ void vnr_dbus_close() {
     g_clear_object(&_connection);
 }
 
-gboolean vnr_dbus_send_switch_and_focus(gchar **files) {
+gboolean vnr_dbus_send_switch_and_focus(gchar **files, gchar* startup_id) {
     GDBusConnection *connection = get_connection();
     if (connection == nullptr) {
         return false;
     }
 
     GError *error = nullptr;
-    GVariant *parameters;
-    if (files == nullptr) {
-        gchar *empty[] = {nullptr};
-        parameters = g_variant_new("(^as)", &empty);
-    } else {
-        parameters = g_variant_new("(^as)", files);
-    }
+    GVariant *parameters =  g_variant_new(
+        "(^ass)",
+        files == nullptr ? _empty_string_array : files,
+        startup_id == nullptr ? _empty_string : startup_id
+        );
 
     GVariant *reply = g_dbus_connection_call_sync(connection,
                                                   VNR_DBUS_SERVICE,
@@ -276,7 +278,6 @@ gboolean vnr_dbus_send_switch_and_focus(gchar **files) {
         g_info("Success " VNR_DBUS_METHOD_SWITCH " method call");
         g_variant_unref(reply);
     }
-    g_variant_unref(parameters);
     return success;
 }
 
