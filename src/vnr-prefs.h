@@ -43,6 +43,52 @@ struct _VnrPrefs {
     GObject parent;
     GtkWidget *dialog;
     GtkWidget *vnr_win;
+
+    GtkWidget *window;
+    GObject *close_button;
+
+    GtkToggleButton *show_hidden;
+    gulong show_hidden_handler_id;
+
+    GtkToggleButton *dark_background;
+    gulong dark_background_handler_id;
+
+    GtkToggleButton *use_existing_process;
+    gulong use_existing_process_handler_id;
+
+    GtkBox *zoom_mode_box;
+    GtkComboBoxText *zoom_mode;
+    gulong zoom_mode_handler_id;
+
+    GtkToggleButton *smooth_images;
+    gulong smooth_images_handler_id;
+
+    GtkToggleButton *confirm_delete;
+    gulong confirm_delete_handler_id;
+
+    GtkToggleButton *reload_on_save;
+    gulong reload_on_save_handler_id;
+
+    GtkTable *behavior_table;
+
+    GtkComboBoxText *action_wheel;
+    gulong action_wheel_handler_id;
+
+    GtkComboBoxText *action_click;
+    gulong action_click_handler_id;
+
+    GtkComboBoxText *action_modify;
+    gulong action_modify_handler_id;
+
+    GtkRange *jpeg_scale;
+    gulong jpeg_scale_handler_id;
+
+    GtkRange *png_scale;
+    gulong png_scale_handler_id;
+
+    GtkBox *desktop_box;
+    GtkComboBoxText *desktop_env;
+    gulong desktop_env_handler_id;
 };
 
 struct _VnrPrefsClass {
@@ -57,6 +103,8 @@ void      vnr_prefs_set_show_menu_bar     (VnrPrefs *prefs, gboolean show_menu_b
 void      vnr_prefs_set_show_toolbar      (VnrPrefs *prefs, gboolean show_toolbar);
 void      vnr_prefs_set_show_scrollbar    (VnrPrefs *prefs, gboolean show_scollbar);
 void      vnr_prefs_set_show_statusbar    (VnrPrefs *prefs, gboolean show_statusbar);
+
+void vnr_prefs_config_reload(VnrPrefs *prefs);
 
 G_END_DECLS
 #endif /* __VNR_PREFS_H__ */

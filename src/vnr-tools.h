@@ -26,6 +26,9 @@
 
 #define g_error_get_msg(err) ((err) ? (err)->message : "Unknown error")
 
+#define G_VISIBLE_PROPERTY  "visible"
+#define G_SET_VISIBLE(PTR, VISIBLE)  g_object_set(PTR, G_VISIBLE_PROPERTY, VISIBLE, NULL);
+
 typedef struct {
  gint a;
  gint b;

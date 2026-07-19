@@ -23,23 +23,23 @@ static GMutex _write_lock;
 
 static void vnr_config_init_default() {
     _config->zoom = VNR_PREFS_ZOOM_SMART;
-    _config->show_hidden = FALSE;
-    _config->dark_background = FALSE;
-    _config->smooth_images = TRUE;
-    _config->confirm_delete = TRUE;
+    _config->show_hidden = true;
+    _config->dark_background = true;
+    _config->smooth_images = true;
+    _config->confirm_delete = true;
     _config->behavior_wheel = VNR_PREFS_WHEEL_ZOOM;
     _config->behavior_click = VNR_PREFS_CLICK_ZOOM;
     _config->behavior_modify = VNR_PREFS_MODIFY_ASK;
     _config->jpeg_quality = 90;
     _config->png_compression = 9;
-    _config->reload_on_save = FALSE;
-    _config->show_menu_bar = FALSE;
-    _config->show_toolbar = TRUE;
-    _config->show_scrollbar = TRUE;
-    _config->show_statusbar = FALSE;
-    _config->auto_resize = FALSE;
+    _config->reload_on_save = false;
+    _config->show_menu_bar = true;
+    _config->show_toolbar = true;
+    _config->show_scrollbar = true;
+    _config->show_statusbar = true;
+    _config->auto_resize = false;
     _config->desktop = VNR_PREFS_DESKTOP_AUTO;
-    _config->use_existing_process = TRUE;
+    _config->use_existing_process = true;
     _config->last_size.a = -1;
     _config->last_size.b = -1;
     _config->last_position.a = -1;
@@ -194,6 +194,7 @@ void vnr_config_set(const VnrConfigUpdate update) {
 
     if (has_update) {
         vnr_config_save();
+        vnr_dbus_send_config_update();
     }
 }
 
@@ -257,4 +258,9 @@ gboolean vnr_config_save() {
     g_mutex_unlock(&_write_lock);
 
     return result;
+}
+
+void vnr_config_reload() {
+    vnr_config_free();
+    vnr_config_get();
 }

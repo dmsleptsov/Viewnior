@@ -7,6 +7,7 @@
 #define VNR_DBUS_PATH VIEWNIOR_PATH
 #define VNR_DBUS_METHOD_SWITCH "SwitchAndFocus"
 #define VNR_DBUS_METHOD_PING "PingPong"
+#define VNR_DBUS_METHOD_CONFIG_UPDATE "ConfigUpdate"
 #define VNR_DBUS_METHOD_QUIT "Quit"
 
 #define DEFAULT_REG_ID 0
@@ -35,6 +36,10 @@ static void gdbus_signal_received(GDBusConnection *connection,
     if (g_strcmp0(signal_name, VNR_DBUS_METHOD_QUIT) == 0) {
         g_warning("Call force quit on '%s' signal", signal_name);
         vnr_window_destroy();
+    } else if (g_strcmp0(signal_name, VNR_DBUS_METHOD_CONFIG_UPDATE) == 0) {
+        g_warning("Call config reload on '%s' signal", signal_name);
+        vnr_config_reload();
+        vnr_window_config_reload();
     } else {
         g_warning("Unknown signal '%s' will be skipped", signal_name);
     }
@@ -281,7 +286,7 @@ gboolean vnr_dbus_send_switch_and_focus(gchar **files, gchar* startup_id) {
     return success;
 }
 
-gboolean vnr_dbus_send_quit() {
+gboolean vnr_dbus_send_signal(gchar *signal_name) {
     GDBusConnection *connection = get_connection();
     if (connection == nullptr) {
         return false;
@@ -292,16 +297,24 @@ gboolean vnr_dbus_send_quit() {
                                                            nullptr,
                                                            VNR_DBUS_PATH,
                                                            VNR_DBUS_INTERFACE,
-                                                           VNR_DBUS_METHOD_QUIT,
+                                                           signal_name,
                                                            nullptr,
                                                            &error);
     if (!success) {
-        g_critical("Failed emit signal: '%s'", g_error_get_msg(error));
+        g_critical("Failed emit signal('%s'): '%s'", signal_name, g_error_get_msg(error));
         g_error_free(error);
     } else {
-        g_info("Success emit '" VNR_DBUS_METHOD_QUIT "' signal");
+        g_info("Success emit '%s' signal", signal_name);
     }
     return success;
+}
+
+gboolean vnr_dbus_send_config_update() {
+    return vnr_dbus_send_signal(VNR_DBUS_METHOD_CONFIG_UPDATE);
+}
+
+gboolean vnr_dbus_send_quit() {
+    return vnr_dbus_send_signal(VNR_DBUS_METHOD_QUIT);
 }
 
 gboolean vnr_dbus_send_ping_pong() {

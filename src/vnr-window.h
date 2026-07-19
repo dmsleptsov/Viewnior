@@ -110,8 +110,10 @@ gboolean vnr_window_next     (VnrWindow *win, gboolean rem_timeout);
 gboolean vnr_window_prev     (VnrWindow *win);
 gboolean vnr_window_first    (VnrWindow *win);
 gboolean vnr_window_last     (VnrWindow *win);
-void     vnr_window_apply_preferences (VnrWindow *window);
-void     vnr_window_toggle_use_existing_process (const VnrWindow *window);
+
+void     vnr_window_toggle_use_existing_process ();
+void     vnr_window_toggle_dark_bg ();
+void     vnr_window_toggle_smooth_images ();
 
 VnrWindow* vnr_window_get_main();
 void vnr_window_parse_and_show(gchar **files, gchar* startup_id);
@@ -120,6 +122,8 @@ GIntPair vnr_window_get_position();
 GIntPair vnr_window_get_size();
 
 void vnr_window_destroy();
+
+void vnr_window_config_reload();
 
 G_END_DECLS
 #endif /* __VNR_WINDOW_H__ */

@@ -102,6 +102,8 @@ void vnr_config_free();
 //TODO: add config sync via dbus, but now call save to file every time
 gboolean vnr_config_save();
 
+void vnr_config_reload();
+
 G_END_DECLS
 
 #endif

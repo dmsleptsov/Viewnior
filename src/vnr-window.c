@@ -1556,6 +1556,8 @@ GtkWindow * vnr_window_new() {
     }
     gtk_window_set_default_size ((GtkWindow *)_main_window, w, h);
 
+    vnr_window_config_reload();
+
     return (GtkWindow *) _main_window;
 }
 
@@ -1735,30 +1737,6 @@ vnr_window_init (VnrWindow * window)
 
     gtk_widget_hide(get_fs_controls(window));
 
-    // Apply menu bar preference
-    action = gtk_action_group_get_action (window->actions_bars,
-                                          "ViewMenuBar");
-    if(!vnr_config_get()->show_menu_bar)
-        gtk_widget_hide (window->menu_bar);
-    else
-        gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
-
-
-    // Apply toolbar preference
-    action = gtk_action_group_get_action (window->actions_bars,
-                                          "ViewToolbar");
-    if(!vnr_config_get()->show_toolbar)
-        gtk_widget_hide (window->toolbar);
-    else
-        gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
-
-    // Apply auto-resize preference
-    action = gtk_action_group_get_action (window->actions_image,
-                                          "ViewResizeWindow");
-
-    if(vnr_config_get()->auto_resize)
-        gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
-
     window->msg_area = vnr_message_area_new();
     VNR_MESSAGE_AREA(window->msg_area)->vnr_win = window;
     gtk_box_pack_start (GTK_BOX (window->layout), window->msg_area, FALSE,FALSE,0);
@@ -1768,24 +1746,8 @@ vnr_window_init (VnrWindow * window)
     gtk_widget_set_can_focus(window->view, TRUE);
     window->scroll_view = uni_scroll_win_new (UNI_IMAGE_VIEW (window->view));
 
-
     window->statusbar = gtk_statusbar_new();
     gtk_box_pack_end (GTK_BOX (window->layout), window->statusbar, FALSE,FALSE,0);
-
-    // Apply statusbar preference
-    action = gtk_action_group_get_action (window->actions_bars,
-                                          "ViewStatusbar");
-    if(!vnr_config_get()->show_statusbar)
-        gtk_widget_hide (window->statusbar);
-    else
-        gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
-
-
-    // Apply scrollbar preference
-    action = gtk_action_group_get_action (window->actions_bars,
-                                          "ViewScrollbar");
-    uni_scroll_win_set_show_scrollbar (UNI_SCROLL_WIN (window->scroll_view), vnr_config_get()->show_scrollbar);
-    gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), vnr_config_get()->show_scrollbar);
 
     gtk_box_pack_end (GTK_BOX (window->layout), window->scroll_view, TRUE,TRUE,0);
     gtk_widget_show_all(GTK_WIDGET (window->scroll_view));
@@ -1798,8 +1760,6 @@ vnr_window_init (VnrWindow * window)
                                                           "GoNext"),
                              gtk_action_group_get_action (window->actions_collection,
                                                           "GoPrevious"));
-
-    vnr_window_apply_preferences(window);
 
     vnr_window_set_drag(window);
 
@@ -2109,30 +2069,27 @@ vnr_window_last (VnrWindow *window){
     return TRUE;
 }
 
-void
-vnr_window_apply_preferences (VnrWindow *window)
-{
-    if ( vnr_config_get()->dark_background ) {
-        GdkColor color;
-        gdk_color_parse(DARK_BACKGROUND_COLOR, &color);
-        gtk_widget_modify_bg(window->view, GTK_STATE_NORMAL, &color);
-    }
-
-    if(vnr_config_get()->smooth_images && UNI_IMAGE_VIEW(window->view)->interp != GDK_INTERP_BILINEAR)
-    {
-        UNI_IMAGE_VIEW(window->view)->interp = GDK_INTERP_BILINEAR;
-        gtk_widget_queue_draw(window->view);
-    }
-    else if(!vnr_config_get()->smooth_images && UNI_IMAGE_VIEW(window->view)->interp != GDK_INTERP_NEAREST)
-    {
-        UNI_IMAGE_VIEW(window->view)->interp = GDK_INTERP_NEAREST;
-        gtk_widget_queue_draw(window->view);
+void vnr_window_toggle_use_existing_process() {
+    if (vnr_config_get()->use_existing_process) {
+        vnr_dbus_send_quit();
     }
 }
 
-void vnr_window_toggle_use_existing_process (const VnrWindow *window) {
-    if(vnr_config_get()->use_existing_process) {
-        vnr_dbus_send_quit();
+void vnr_window_toggle_dark_bg() {
+    GdkRGBA *color = nullptr;
+    if (vnr_config_get()->dark_background) {
+        gdk_rgba_parse(color, DARK_BACKGROUND_COLOR);
+    }
+    gtk_widget_override_background_color(vnr_window_get_main()->view, GTK_STATE_NORMAL, color);
+}
+
+void vnr_window_toggle_smooth_images() {
+    if (vnr_config_get()->smooth_images && UNI_IMAGE_VIEW(_main_window->view)->interp != GDK_INTERP_BILINEAR) {
+        UNI_IMAGE_VIEW(_main_window->view)->interp = GDK_INTERP_BILINEAR;
+        gtk_widget_queue_draw(_main_window->view);
+    } else if (!vnr_config_get()->smooth_images && UNI_IMAGE_VIEW(_main_window->view)->interp != GDK_INTERP_NEAREST) {
+        UNI_IMAGE_VIEW(_main_window->view)->interp = GDK_INTERP_NEAREST;
+        gtk_widget_queue_draw(_main_window->view);
     }
 }
 
@@ -2168,4 +2125,38 @@ GIntPair vnr_window_get_size() {
     gtk_window_get_size((GtkWindow *) _main_window, &w, &h);
     GIntPair result = {w, h};
     return result;
+}
+
+//TODO: action group have strange behavior and now spawn extra signals
+// migrate to GAction/GActionGroup
+void vnr_window_config_reload() {
+    GtkAction *action;
+
+    action = gtk_action_group_get_action(_main_window->actions_bars, "ViewMenuBar");
+    G_SET_VISIBLE(_main_window->menu_bar, vnr_config_get()->show_menu_bar);
+    gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), vnr_config_get()->show_menu_bar);
+
+    action = gtk_action_group_get_action(_main_window->actions_bars, "ViewToolbar");
+    G_SET_VISIBLE(_main_window->toolbar, vnr_config_get()->show_toolbar);
+    gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), vnr_config_get()->show_toolbar);
+
+    action = gtk_action_group_get_action(_main_window->actions_image, "ViewResizeWindow");
+    if (vnr_config_get()->auto_resize) {
+        gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), true);
+    } else {
+        gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), false);
+    }
+
+    action = gtk_action_group_get_action(_main_window->actions_bars, "ViewStatusbar");
+    G_SET_VISIBLE(_main_window->statusbar, vnr_config_get()->show_statusbar);
+    gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), vnr_config_get()->show_statusbar);
+
+    action = gtk_action_group_get_action(_main_window->actions_bars, "ViewScrollbar");
+    gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), vnr_config_get()->show_scrollbar);
+    uni_scroll_win_set_show_scrollbar(UNI_SCROLL_WIN(_main_window->scroll_view), vnr_config_get()->show_scrollbar);
+
+    vnr_window_toggle_dark_bg();
+    vnr_window_toggle_smooth_images();
+
+    vnr_prefs_config_reload(_main_window->prefs);
 }
