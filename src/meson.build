@@ -20,6 +20,8 @@ viewnior_sources = [
     'uni-exiv2.cpp',
     'vnr-gdbus.c',
     'vnr-gdbus.h',
+    'vnr-config.c',
+    'vnr-config.h',
 ]
 
 marshal = 'uni-marshal'

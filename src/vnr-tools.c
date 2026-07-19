@@ -113,6 +113,7 @@ vnr_tools_get_list_from_array (gchar **files)
 
         if (uri_string) {
             uri_list = g_slist_prepend (uri_list, g_strdup (uri_string));
+            g_info("Prepared '%s' file url", uri_string);
             g_free (uri_string);
         }
     }

@@ -1,6 +1,6 @@
 pkgname=viewnior
 pkgver=1.9
-pkgrel=3
+pkgrel=5
 pkgdesc="A simple, fast and elegant image viewer program"
 arch=('x86_64')
 url="https://github.com/dmsleptsov/Viewnior"

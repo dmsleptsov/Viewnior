@@ -571,7 +571,7 @@ uni_image_view_button_press (GtkWidget * widget, GdkEventButton * ev)
     VnrWindow *vnr_win = VNR_WINDOW(gtk_widget_get_toplevel(widget));
     g_assert(gtk_widget_is_toplevel(GTK_WIDGET(vnr_win)));
 
-    if(ev->type == GDK_2BUTTON_PRESS && ev->button == 1 && vnr_win->prefs->behavior_click == VNR_PREFS_CLICK_NEXT)
+    if(ev->type == GDK_2BUTTON_PRESS && ev->button == 1 && vnr_config_get()->behavior_click == VNR_PREFS_CLICK_NEXT)
     {
         int width = gdk_window_get_width(gtk_widget_get_window(widget));
 
@@ -660,7 +660,7 @@ uni_image_view_scroll_event (GtkWidget * widget, GdkEventScroll * ev)
      * like scroll down. No idea if that is correct -- I have no input
      * device that can do horizontal scrolls. */
     
-	if (vnr_win->prefs->behavior_wheel == VNR_PREFS_WHEEL_ZOOM || (ev->state & GDK_CONTROL_MASK) != 0)
+	if (vnr_config_get()->behavior_wheel == VNR_PREFS_WHEEL_ZOOM || (ev->state & GDK_CONTROL_MASK) != 0)
 	{
         switch (ev->direction)
         {
@@ -689,7 +689,7 @@ uni_image_view_scroll_event (GtkWidget * widget, GdkEventScroll * ev)
         }
 
 	}
-	else if(vnr_win->prefs->behavior_wheel == VNR_PREFS_WHEEL_NAVIGATE)
+	else if(vnr_config_get()->behavior_wheel == VNR_PREFS_WHEEL_NAVIGATE)
 	{
         switch (ev->direction)
         {

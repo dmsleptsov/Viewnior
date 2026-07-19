@@ -39,78 +39,56 @@ typedef struct _VnrPrefsClass VnrPrefsClass;
 #define VNR_IS_PREFS_CLASS(klass)  (G_TYPE_CHECK_CLASS_TYPE ((klass),  VNR_TYPE_PREFS))
 #define VNR_PREFS_GET_CLASS(obj)   (G_TYPE_INSTANCE_GET_CLASS ((obj),  VNR_TYPE_PREFS, VnrPrefsClass))
 
-typedef enum{
-    VNR_PREFS_ZOOM_SMART,
-    VNR_PREFS_ZOOM_NORMAL,
-    VNR_PREFS_ZOOM_FIT,
-    VNR_PREFS_ZOOM_LAST_USED,
-} VnrPrefsZoom;
-
-typedef enum{
-    VNR_PREFS_DESKTOP_GNOME2,
-    VNR_PREFS_DESKTOP_GNOME3,
-    VNR_PREFS_DESKTOP_XFCE,
-    VNR_PREFS_DESKTOP_LXDE,
-    VNR_PREFS_DESKTOP_PUPPY,
-    VNR_PREFS_DESKTOP_FLUXBOX,
-    VNR_PREFS_DESKTOP_NITROGEN,
-    VNR_PREFS_DESKTOP_MATE,
-    VNR_PREFS_DESKTOP_CINNAMON,
-    VNR_PREFS_DESKTOP_AUTO,
-} VnrPrefsDesktop;
-
-typedef enum{
-    VNR_PREFS_WHEEL_NAVIGATE ,
-    VNR_PREFS_WHEEL_ZOOM ,
-    VNR_PREFS_WHEEL_SCROLL,
-} VnrPrefsWheel;
-
-typedef enum{
-    VNR_PREFS_CLICK_ZOOM ,
-    VNR_PREFS_CLICK_NEXT ,
-} VnrPrefsClick;
-
-typedef enum{
-    VNR_PREFS_MODIFY_ASK ,
-    VNR_PREFS_MODIFY_SAVE ,
-    VNR_PREFS_MODIFY_IGNORE ,
-} VnrPrefsModify;
-
-typedef struct {
-    gint a;
-    gint b;
-} GIntPair;
-
-
 struct _VnrPrefs {
     GObject parent;
-
-    VnrPrefsZoom zoom;
-
-    VnrPrefsDesktop desktop;
-
-    VnrPrefsWheel behavior_wheel;
-    VnrPrefsClick behavior_click;
-    VnrPrefsModify behavior_modify;
-    gboolean show_hidden;
-    gboolean smooth_images;
-    gboolean confirm_delete;
-    gboolean reload_on_save;
-    gboolean show_menu_bar;
-    gboolean show_toolbar;
-    gboolean show_scrollbar;
-    gboolean show_statusbar;
-    gboolean auto_resize;
-    gboolean dark_background;
-    int jpeg_quality;
-    int png_compression;
-    gboolean use_existing_process;
-
     GtkWidget *dialog;
     GtkWidget *vnr_win;
 
-    GIntPair last_size;
-    GIntPair last_position;
+    GtkWidget *window;
+    GObject *close_button;
+
+    GtkToggleButton *show_hidden;
+    gulong show_hidden_handler_id;
+
+    GtkToggleButton *dark_background;
+    gulong dark_background_handler_id;
+
+    GtkToggleButton *use_existing_process;
+    gulong use_existing_process_handler_id;
+
+    GtkBox *zoom_mode_box;
+    GtkComboBoxText *zoom_mode;
+    gulong zoom_mode_handler_id;
+
+    GtkToggleButton *smooth_images;
+    gulong smooth_images_handler_id;
+
+    GtkToggleButton *confirm_delete;
+    gulong confirm_delete_handler_id;
+
+    GtkToggleButton *reload_on_save;
+    gulong reload_on_save_handler_id;
+
+    GtkTable *behavior_table;
+
+    GtkComboBoxText *action_wheel;
+    gulong action_wheel_handler_id;
+
+    GtkComboBoxText *action_click;
+    gulong action_click_handler_id;
+
+    GtkComboBoxText *action_modify;
+    gulong action_modify_handler_id;
+
+    GtkRange *jpeg_scale;
+    gulong jpeg_scale_handler_id;
+
+    GtkRange *png_scale;
+    gulong png_scale_handler_id;
+
+    GtkBox *desktop_box;
+    GtkComboBoxText *desktop_env;
+    gulong desktop_env_handler_id;
 };
 
 struct _VnrPrefsClass {
@@ -125,7 +103,8 @@ void      vnr_prefs_set_show_menu_bar     (VnrPrefs *prefs, gboolean show_menu_b
 void      vnr_prefs_set_show_toolbar      (VnrPrefs *prefs, gboolean show_toolbar);
 void      vnr_prefs_set_show_scrollbar    (VnrPrefs *prefs, gboolean show_scollbar);
 void      vnr_prefs_set_show_statusbar    (VnrPrefs *prefs, gboolean show_statusbar);
-gboolean  vnr_prefs_save (VnrPrefs *prefs);
+
+void vnr_prefs_config_reload(VnrPrefs *prefs);
 
 G_END_DECLS
 #endif /* __VNR_PREFS_H__ */

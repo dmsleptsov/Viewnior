@@ -7,6 +7,7 @@
 #define VNR_DBUS_PATH VIEWNIOR_PATH
 #define VNR_DBUS_METHOD_SWITCH "SwitchAndFocus"
 #define VNR_DBUS_METHOD_PING "PingPong"
+#define VNR_DBUS_METHOD_CONFIG_UPDATE "ConfigUpdate"
 #define VNR_DBUS_METHOD_QUIT "Quit"
 
 #define DEFAULT_REG_ID 0
@@ -14,6 +15,8 @@
 static guint _signals_reg_id = DEFAULT_REG_ID;
 static guint _methods_reg_id = DEFAULT_REG_ID;
 static GDBusConnection *_connection = nullptr;
+static gchar *_empty_string_array[] = {nullptr};
+static const gchar *_empty_string = "";
 
 static void gdbus_signal_received(GDBusConnection *connection,
                                   const gchar *sender,
@@ -33,6 +36,10 @@ static void gdbus_signal_received(GDBusConnection *connection,
     if (g_strcmp0(signal_name, VNR_DBUS_METHOD_QUIT) == 0) {
         g_warning("Call force quit on '%s' signal", signal_name);
         vnr_window_destroy();
+    } else if (g_strcmp0(signal_name, VNR_DBUS_METHOD_CONFIG_UPDATE) == 0) {
+        g_warning("Call config reload on '%s' signal", signal_name);
+        vnr_config_reload();
+        vnr_window_config_reload();
     } else {
         g_warning("Unknown signal '%s' will be skipped", signal_name);
     }
@@ -78,9 +85,10 @@ static void gdbus_method_call(GDBusConnection *connection,
         g_dbus_method_invocation_return_value(invocation, parameters);
     } else if (g_strcmp0(method_name, VNR_DBUS_METHOD_SWITCH) == 0) {
         gchar **files = nullptr;
-        g_variant_get(parameters, "(^as)", &files);
+        gchar *startup_id = nullptr;
+        g_variant_get(parameters, "(^ass)", &files, &startup_id);
 
-        vnr_window_parse_and_show(files);
+        vnr_window_parse_and_show(files, startup_id);
 
         g_free(files);
         g_dbus_method_invocation_return_value(invocation, nullptr);
@@ -96,6 +104,7 @@ static guint subscribe_methods(GDBusConnection *connection) {
                 "<interface name='" VNR_DBUS_INTERFACE "'>"
                     "<method name='" VNR_DBUS_METHOD_SWITCH "'>"
                         "<arg type='as' name='files' direction='in'/>"
+                        "<arg type='s' name='startup_id' direction='in'/>"
                     "</method>"
                     "<method name='" VNR_DBUS_METHOD_PING "'/>"
                 "</interface>"
@@ -241,20 +250,18 @@ void vnr_dbus_close() {
     g_clear_object(&_connection);
 }
 
-gboolean vnr_dbus_send_switch_and_focus(gchar **files) {
+gboolean vnr_dbus_send_switch_and_focus(gchar **files, gchar* startup_id) {
     GDBusConnection *connection = get_connection();
     if (connection == nullptr) {
         return false;
     }
 
     GError *error = nullptr;
-    GVariant *parameters;
-    if (files == nullptr) {
-        gchar *empty[] = {nullptr};
-        parameters = g_variant_new("(^as)", &empty);
-    } else {
-        parameters = g_variant_new("(^as)", files);
-    }
+    GVariant *parameters =  g_variant_new(
+        "(^ass)",
+        files == nullptr ? _empty_string_array : files,
+        startup_id == nullptr ? _empty_string : startup_id
+        );
 
     GVariant *reply = g_dbus_connection_call_sync(connection,
                                                   VNR_DBUS_SERVICE,
@@ -276,11 +283,10 @@ gboolean vnr_dbus_send_switch_and_focus(gchar **files) {
         g_info("Success " VNR_DBUS_METHOD_SWITCH " method call");
         g_variant_unref(reply);
     }
-    g_variant_unref(parameters);
     return success;
 }
 
-gboolean vnr_dbus_send_quit() {
+gboolean vnr_dbus_send_signal(gchar *signal_name) {
     GDBusConnection *connection = get_connection();
     if (connection == nullptr) {
         return false;
@@ -291,16 +297,24 @@ gboolean vnr_dbus_send_quit() {
                                                            nullptr,
                                                            VNR_DBUS_PATH,
                                                            VNR_DBUS_INTERFACE,
-                                                           VNR_DBUS_METHOD_QUIT,
+                                                           signal_name,
                                                            nullptr,
                                                            &error);
     if (!success) {
-        g_critical("Failed emit signal: '%s'", g_error_get_msg(error));
+        g_critical("Failed emit signal('%s'): '%s'", signal_name, g_error_get_msg(error));
         g_error_free(error);
     } else {
-        g_info("Success emit '" VNR_DBUS_METHOD_QUIT "' signal");
+        g_info("Success emit '%s' signal", signal_name);
     }
     return success;
+}
+
+gboolean vnr_dbus_send_config_update() {
+    return vnr_dbus_send_signal(VNR_DBUS_METHOD_CONFIG_UPDATE);
+}
+
+gboolean vnr_dbus_send_quit() {
+    return vnr_dbus_send_signal(VNR_DBUS_METHOD_QUIT);
 }
 
 gboolean vnr_dbus_send_ping_pong() {

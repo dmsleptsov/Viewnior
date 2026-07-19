@@ -42,6 +42,7 @@
 #include "uni-utils.h"
 
 #define DARK_BACKGROUND_COLOR "#222222"
+#define PIXMAP_DIR        PACKAGE_DATA_DIR"/viewnior/pixmaps/"
 
 G_DEFINE_TYPE (VnrWindow, vnr_window, GTK_TYPE_WINDOW);
 
@@ -409,7 +410,7 @@ get_top_widgets_height(VnrWindow *window)
 {
     GtkAllocation allocation;
 
-    if (!window->prefs->show_menu_bar && !window->prefs->show_toolbar)
+    if (!vnr_config_get()->show_menu_bar && !vnr_config_get()->show_toolbar)
     {
         return 0;
     }
@@ -461,7 +462,7 @@ rotate_pixbuf(VnrWindow *window, GdkPixbufRotation angle)
     window->modifications ^= 4;
     gtk_action_group_set_sensitive(window->action_save, window->modifications);
 
-    if(window->modifications == 0 && window->prefs->behavior_modify != VNR_PREFS_MODIFY_IGNORE)
+    if(window->modifications == 0 && vnr_config_get()->behavior_modify != VNR_PREFS_MODIFY_IGNORE)
     {
         vnr_message_area_hide(VNR_MESSAGE_AREA(window->msg_area));
         return;
@@ -472,9 +473,9 @@ rotate_pixbuf(VnrWindow *window, GdkPixbufRotation angle)
                               TRUE,
                               _("Image modifications cannot be saved.\nWriting in this format is not supported."),
                               FALSE);
-    else if(window->prefs->behavior_modify == VNR_PREFS_MODIFY_SAVE)
+    else if(vnr_config_get()->behavior_modify == VNR_PREFS_MODIFY_SAVE)
         save_image_cb(NULL, window);
-    else if(window->prefs->behavior_modify == VNR_PREFS_MODIFY_ASK)
+    else if(vnr_config_get()->behavior_modify == VNR_PREFS_MODIFY_ASK)
         vnr_message_area_show_with_button(VNR_MESSAGE_AREA(window->msg_area),
                                           FALSE,
                                           _("Save modifications?\nThis will overwrite the image and may reduce its quality!"),
@@ -530,9 +531,9 @@ flip_pixbuf(VnrWindow *window, gboolean horizontal)
                               TRUE,
                               _("Image modifications cannot be saved.\nWriting in this format is not supported."),
                               FALSE);
-    else if(window->prefs->behavior_modify == VNR_PREFS_MODIFY_SAVE)
+    else if(vnr_config_get()->behavior_modify == VNR_PREFS_MODIFY_SAVE)
         save_image_cb(NULL, window);
-    else if(window->prefs->behavior_modify == VNR_PREFS_MODIFY_ASK)
+    else if(vnr_config_get()->behavior_modify == VNR_PREFS_MODIFY_ASK)
         vnr_message_area_show_with_button(VNR_MESSAGE_AREA(window->msg_area),
                                           FALSE,
                                           _("Save modifications?\nThis will overwrite the image and may reduce its quality!"),
@@ -572,7 +573,7 @@ save_image_cb (GtkWidget *widget, VnrWindow *window)
     /* This makes the cursor show NOW */
     gdk_flush();
 
-    if(window->prefs->behavior_modify == VNR_PREFS_MODIFY_ASK)
+    if(vnr_config_get()->behavior_modify == VNR_PREFS_MODIFY_ASK)
         vnr_message_area_hide(VNR_MESSAGE_AREA(window->msg_area));
 
     /* Store exiv2 metadata to cache, so we can restore it afterwards */
@@ -581,7 +582,7 @@ save_image_cb (GtkWidget *widget, VnrWindow *window)
     if(g_strcmp0(window->writable_format_name, "jpeg" ) == 0)
     {
         gchar *quality;
-        quality = g_strdup_printf ("%i", window->prefs->jpeg_quality);
+        quality = g_strdup_printf ("%i", vnr_config_get()->jpeg_quality);
 
         gdk_pixbuf_save (uni_image_view_get_pixbuf(UNI_IMAGE_VIEW(window->view)),
                          VNR_FILE(window->file_list->data)->path, "jpeg",
@@ -591,7 +592,7 @@ save_image_cb (GtkWidget *widget, VnrWindow *window)
     else if(g_strcmp0(window->writable_format_name, "png" ) == 0)
     {
         gchar *compression;
-        compression = g_strdup_printf ("%i", window->prefs->png_compression);
+        compression = g_strdup_printf ("%i", vnr_config_get()->png_compression);
 
         gdk_pixbuf_save (uni_image_view_get_pixbuf(UNI_IMAGE_VIEW(window->view)),
                          VNR_FILE(window->file_list->data)->path, "png",
@@ -616,7 +617,7 @@ save_image_cb (GtkWidget *widget, VnrWindow *window)
         return;
     }
 
-    if(window->prefs->reload_on_save)
+    if(vnr_config_get()->reload_on_save)
     {
         vnr_window_open(window, FALSE);
         return;
@@ -626,7 +627,7 @@ save_image_cb (GtkWidget *widget, VnrWindow *window)
 
     gtk_action_group_set_sensitive(window->action_save, FALSE);
 
-    if(window->prefs->behavior_modify != VNR_PREFS_MODIFY_ASK)
+    if(vnr_config_get()->behavior_modify != VNR_PREFS_MODIFY_ASK)
         zoom_changed_cb(UNI_IMAGE_VIEW(window->view), window);
 
     if(gtk_widget_get_visible(window->props_dlg))
@@ -677,10 +678,9 @@ vnr_window_cmd_main_menu_hidden (GtkWidget *widget, gpointer user_data)
     gtk_toggle_tool_button_set_active(GTK_TOGGLE_TOOL_BUTTON(VNR_WINDOW(user_data)->properties_button), FALSE);
 }
 
-static gboolean window_destroy_cb (GtkWidget *widget, gpointer user_data) {
+static gboolean window_destroy_cb(GtkWidget *widget, gpointer user_data) {
     vnr_window_save_accel_map();
-    vnr_prefs_save(VNR_WINDOW(widget)->prefs);
-    vnr_dbus_close();
+    vnr_config_save();
     gtk_main_quit();
     return true;
 }
@@ -840,7 +840,7 @@ static void
 vnr_window_cmd_resize (GtkToggleAction *action, VnrWindow *window)
 {
     if ( action != NULL && !gtk_toggle_action_get_active(action) ) {
-        window->prefs->auto_resize = FALSE;
+        vnr_config_set((VnrConfigUpdate){.auto_resize = &(gboolean){false}});
         return;
     }
 
@@ -852,8 +852,7 @@ vnr_window_cmd_resize (GtkToggleAction *action, VnrWindow *window)
     if ( img_w == 0 || img_h == 0 )
         return;
 
-    window->prefs->auto_resize = TRUE;
-
+    vnr_config_set((VnrConfigUpdate){.auto_resize = &(gboolean){true}});
     vnr_tools_fit_to_size (&img_w, &img_h, window->max_width, window->max_height);
     gtk_window_resize (GTK_WINDOW (window), img_w, img_h + get_top_widgets_height(window));
 }
@@ -960,7 +959,7 @@ vnr_window_cmd_open(GtkAction *action, VnrWindow *window)
     gtk_widget_show_all (GTK_WIDGET(dialog));
 
     /* This only works when here. */
-    gtk_file_chooser_set_show_hidden (GTK_FILE_CHOOSER(dialog), window->prefs->show_hidden);
+    gtk_file_chooser_set_show_hidden (GTK_FILE_CHOOSER(dialog), vnr_config_get()->show_hidden);
 }
 
 static void
@@ -991,7 +990,7 @@ vnr_window_cmd_open_dir(GtkAction *action, VnrWindow *window)
     gtk_widget_show_all (GTK_WIDGET(dialog));
 
     /* This only works when here. */
-    gtk_file_chooser_set_show_hidden (GTK_FILE_CHOOSER(dialog), window->prefs->show_hidden);
+    gtk_file_chooser_set_show_hidden (GTK_FILE_CHOOSER(dialog), vnr_config_get()->show_hidden);
 }
 
 static void
@@ -1102,7 +1101,7 @@ vnr_window_cmd_delete(GtkAction *action, VnrWindow *window)
 
     file_path = VNR_FILE(window->file_list->data)->path;
 
-    if(window->prefs->confirm_delete)
+    if(vnr_config_get()->confirm_delete)
     {
         warning = _("If you delete an item, it will be permanently lost.");
 
@@ -1129,7 +1128,7 @@ vnr_window_cmd_delete(GtkAction *action, VnrWindow *window)
                                 NULL);
     }
 
-    if(!window->prefs->confirm_delete || gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_YES )
+    if(!vnr_config_get()->confirm_delete || gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_YES )
     {
         GFile *file;
         GError *error = NULL;
@@ -1174,7 +1173,7 @@ vnr_window_cmd_delete(GtkAction *action, VnrWindow *window)
             else
             {
                 vnr_window_set_list(window, next, FALSE);
-                if(window->prefs->confirm_delete && !window->cursor_is_hidden)
+                if(vnr_config_get()->confirm_delete && !window->cursor_is_hidden)
                     gdk_window_set_cursor(gtk_widget_get_window(GTK_WIDGET(dlg)),
                                           gdk_cursor_new(GDK_WATCH));
 
@@ -1182,7 +1181,7 @@ vnr_window_cmd_delete(GtkAction *action, VnrWindow *window)
 
                 vnr_window_close(window);
                 vnr_window_open(window, FALSE);
-                if(window->prefs->confirm_delete && !window->cursor_is_hidden)
+                if(vnr_config_get()->confirm_delete && !window->cursor_is_hidden)
                     gdk_window_set_cursor(gtk_widget_get_window(GTK_WIDGET(dlg)),
                                           gdk_cursor_new(GDK_LEFT_PTR));
             }
@@ -1192,7 +1191,7 @@ vnr_window_cmd_delete(GtkAction *action, VnrWindow *window)
     if(cursor_was_hidden)
         vnr_window_hide_cursor(window);
 
-    if(window->prefs->confirm_delete)
+    if(vnr_config_get()->confirm_delete)
     {
         g_free(prompt);
         g_free(markup);
@@ -1245,9 +1244,9 @@ vnr_window_cmd_crop(GtkAction *action, VnrWindow *window)
                               TRUE,
                               _("Image modifications cannot be saved.\nWriting in this format is not supported."),
                               FALSE);
-    else if(window->prefs->behavior_modify == VNR_PREFS_MODIFY_SAVE)
+    else if(vnr_config_get()->behavior_modify == VNR_PREFS_MODIFY_SAVE)
         save_image_cb(NULL, window);
-    else if(window->prefs->behavior_modify == VNR_PREFS_MODIFY_ASK)
+    else if(vnr_config_get()->behavior_modify == VNR_PREFS_MODIFY_ASK)
         vnr_message_area_show_with_button(VNR_MESSAGE_AREA(window->msg_area),
                                           FALSE,
                                           _("Save modifications?\nThis will overwrite the image and may reduce its quality!"),
@@ -1534,15 +1533,15 @@ vnr_window_class_init (VnrWindowClass * klass)
     widget_class->drag_data_received = vnr_window_drag_data_received;
 }
 
-//TODO: separate
 GtkWindow * vnr_window_new() {
     if(_main_window != nullptr) {
         return (GtkWindow *) _main_window;
     }
 
-    _main_window = g_object_new(VNR_TYPE_WINDOW, NULL);
+    gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(), PIXMAP_DIR);
+    _main_window = g_object_new(VNR_TYPE_WINDOW, nullptr);
 
-    const GIntPair last_position = _main_window->prefs->last_position;
+    const GIntPair last_position = vnr_config_get()->last_position;
     if(last_position.a >= 0 && last_position.b >= 0) {
         gtk_window_move((GtkWindow *)_main_window, last_position.a, last_position.b);
     } else {
@@ -1550,15 +1549,14 @@ GtkWindow * vnr_window_new() {
     }
 
     gint w = 480, h = 300;
-    const GIntPair last_size = _main_window->prefs->last_size;
+    const GIntPair last_size = vnr_config_get()->last_size;
     if(last_size.a > 0 && last_size.b > 0) {
         w = last_size.a;
         h = last_size.b;
     }
     gtk_window_set_default_size ((GtkWindow *)_main_window, w, h);
 
-    //TODO
-    vnr_dbus_register();
+    vnr_window_config_reload();
 
     return (GtkWindow *) _main_window;
 }
@@ -1739,30 +1737,6 @@ vnr_window_init (VnrWindow * window)
 
     gtk_widget_hide(get_fs_controls(window));
 
-    // Apply menu bar preference
-    action = gtk_action_group_get_action (window->actions_bars,
-                                          "ViewMenuBar");
-    if(!window->prefs->show_menu_bar)
-        gtk_widget_hide (window->menu_bar);
-    else
-        gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
-
-
-    // Apply toolbar preference
-    action = gtk_action_group_get_action (window->actions_bars,
-                                          "ViewToolbar");
-    if(!window->prefs->show_toolbar)
-        gtk_widget_hide (window->toolbar);
-    else
-        gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
-
-    // Apply auto-resize preference
-    action = gtk_action_group_get_action (window->actions_image,
-                                          "ViewResizeWindow");
-
-    if(window->prefs->auto_resize)
-        gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
-
     window->msg_area = vnr_message_area_new();
     VNR_MESSAGE_AREA(window->msg_area)->vnr_win = window;
     gtk_box_pack_start (GTK_BOX (window->layout), window->msg_area, FALSE,FALSE,0);
@@ -1772,24 +1746,8 @@ vnr_window_init (VnrWindow * window)
     gtk_widget_set_can_focus(window->view, TRUE);
     window->scroll_view = uni_scroll_win_new (UNI_IMAGE_VIEW (window->view));
 
-
     window->statusbar = gtk_statusbar_new();
     gtk_box_pack_end (GTK_BOX (window->layout), window->statusbar, FALSE,FALSE,0);
-
-    // Apply statusbar preference
-    action = gtk_action_group_get_action (window->actions_bars,
-                                          "ViewStatusbar");
-    if(!window->prefs->show_statusbar)
-        gtk_widget_hide (window->statusbar);
-    else
-        gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), TRUE);
-
-
-    // Apply scrollbar preference
-    action = gtk_action_group_get_action (window->actions_bars,
-                                          "ViewScrollbar");
-    uni_scroll_win_set_show_scrollbar (UNI_SCROLL_WIN (window->scroll_view), window->prefs->show_scrollbar);
-    gtk_toggle_action_set_active (GTK_TOGGLE_ACTION (action), window->prefs->show_scrollbar);
 
     gtk_box_pack_end (GTK_BOX (window->layout), window->scroll_view, TRUE,TRUE,0);
     gtk_widget_show_all(GTK_WIDGET (window->scroll_view));
@@ -1802,8 +1760,6 @@ vnr_window_init (VnrWindow * window)
                                                           "GoNext"),
                              gtk_action_group_get_action (window->actions_collection,
                                                           "GoPrevious"));
-
-    vnr_window_apply_preferences(window);
 
     vnr_window_set_drag(window);
 
@@ -1896,17 +1852,17 @@ vnr_window_open (VnrWindow * window, gboolean fit_to_screen)
     else
         gtk_action_group_set_sensitive(window->actions_static_image, FALSE);
 
-    if(window->prefs->zoom == VNR_PREFS_ZOOM_LAST_USED )
+    if(vnr_config_get()->zoom == VNR_PREFS_ZOOM_LAST_USED )
     {
         uni_image_view_set_fitting (UNI_IMAGE_VIEW(window->view), last_fit_mode);
         zoom_changed_cb(UNI_IMAGE_VIEW(window->view), window);
     }
     else
     {
-        uni_image_view_set_zoom_mode (UNI_IMAGE_VIEW(window->view), window->prefs->zoom);
+        uni_image_view_set_zoom_mode (UNI_IMAGE_VIEW(window->view),vnr_config_get()->zoom);
     }
 
-    if ( window->prefs->auto_resize ) {
+    if ( vnr_config_get()->auto_resize ) {
         vnr_window_cmd_resize(NULL, window);
     }
 
@@ -1927,11 +1883,11 @@ vnr_window_open_from_list(VnrWindow *window, GSList *uri_list)
 
     if (g_slist_length(uri_list) == 1)
     {
-        vnr_file_load_single_uri (uri_list->data, &file_list, window->prefs->show_hidden, &error);
+        vnr_file_load_single_uri (uri_list->data, &file_list, vnr_config_get()->show_hidden, &error);
     }
     else
     {
-        vnr_file_load_uri_list (uri_list, &file_list, window->prefs->show_hidden, &error);
+        vnr_file_load_uri_list (uri_list, &file_list, vnr_config_get()->show_hidden, &error);
     }
 
     if(error != NULL && file_list != NULL)
@@ -2113,30 +2069,27 @@ vnr_window_last (VnrWindow *window){
     return TRUE;
 }
 
-void
-vnr_window_apply_preferences (VnrWindow *window)
-{
-    if ( window->prefs->dark_background ) {
-        GdkColor color;
-        gdk_color_parse(DARK_BACKGROUND_COLOR, &color);
-        gtk_widget_modify_bg(window->view, GTK_STATE_NORMAL, &color);
-    }
-
-    if(window->prefs->smooth_images && UNI_IMAGE_VIEW(window->view)->interp != GDK_INTERP_BILINEAR)
-    {
-        UNI_IMAGE_VIEW(window->view)->interp = GDK_INTERP_BILINEAR;
-        gtk_widget_queue_draw(window->view);
-    }
-    else if(!window->prefs->smooth_images && UNI_IMAGE_VIEW(window->view)->interp != GDK_INTERP_NEAREST)
-    {
-        UNI_IMAGE_VIEW(window->view)->interp = GDK_INTERP_NEAREST;
-        gtk_widget_queue_draw(window->view);
+void vnr_window_toggle_use_existing_process() {
+    if (vnr_config_get()->use_existing_process) {
+        vnr_dbus_send_quit();
     }
 }
 
-void vnr_window_toggle_use_existing_process (const VnrWindow *window) {
-    if(window->prefs->use_existing_process) {
-        vnr_dbus_send_quit();
+void vnr_window_toggle_dark_bg() {
+    GdkRGBA *color = nullptr;
+    if (vnr_config_get()->dark_background) {
+        gdk_rgba_parse(color, DARK_BACKGROUND_COLOR);
+    }
+    gtk_widget_override_background_color(vnr_window_get_main()->view, GTK_STATE_NORMAL, color);
+}
+
+void vnr_window_toggle_smooth_images() {
+    if (vnr_config_get()->smooth_images && UNI_IMAGE_VIEW(_main_window->view)->interp != GDK_INTERP_BILINEAR) {
+        UNI_IMAGE_VIEW(_main_window->view)->interp = GDK_INTERP_BILINEAR;
+        gtk_widget_queue_draw(_main_window->view);
+    } else if (!vnr_config_get()->smooth_images && UNI_IMAGE_VIEW(_main_window->view)->interp != GDK_INTERP_NEAREST) {
+        UNI_IMAGE_VIEW(_main_window->view)->interp = GDK_INTERP_NEAREST;
+        gtk_widget_queue_draw(_main_window->view);
     }
 }
 
@@ -2145,8 +2098,13 @@ VnrWindow* vnr_window_get_main() {
 }
 
 //TODO: separate and add slot/signals
-void vnr_window_parse_and_show(gchar **files) {
+void vnr_window_parse_and_show(gchar **files, gchar* startup_id) {
     GtkWindow *window = (GtkWindow *) _main_window;
+
+    if (startup_id != nullptr && strlen(startup_id) > 0) {
+        g_info("Passing new '%s' startup id", startup_id);
+        gtk_window_set_startup_id(window, startup_id);
+    }
 
     GSList *uri_list = vnr_tools_get_list_from_array (files);
     vnr_window_open_from_list(_main_window, uri_list);
@@ -2167,4 +2125,38 @@ GIntPair vnr_window_get_size() {
     gtk_window_get_size((GtkWindow *) _main_window, &w, &h);
     GIntPair result = {w, h};
     return result;
+}
+
+//TODO: action group have strange behavior and now spawn extra signals
+// migrate to GAction/GActionGroup
+void vnr_window_config_reload() {
+    GtkAction *action;
+
+    action = gtk_action_group_get_action(_main_window->actions_bars, "ViewMenuBar");
+    G_SET_VISIBLE(_main_window->menu_bar, vnr_config_get()->show_menu_bar);
+    gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), vnr_config_get()->show_menu_bar);
+
+    action = gtk_action_group_get_action(_main_window->actions_bars, "ViewToolbar");
+    G_SET_VISIBLE(_main_window->toolbar, vnr_config_get()->show_toolbar);
+    gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), vnr_config_get()->show_toolbar);
+
+    action = gtk_action_group_get_action(_main_window->actions_image, "ViewResizeWindow");
+    if (vnr_config_get()->auto_resize) {
+        gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), true);
+    } else {
+        gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), false);
+    }
+
+    action = gtk_action_group_get_action(_main_window->actions_bars, "ViewStatusbar");
+    G_SET_VISIBLE(_main_window->statusbar, vnr_config_get()->show_statusbar);
+    gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), vnr_config_get()->show_statusbar);
+
+    action = gtk_action_group_get_action(_main_window->actions_bars, "ViewScrollbar");
+    gtk_toggle_action_set_active(GTK_TOGGLE_ACTION(action), vnr_config_get()->show_scrollbar);
+    uni_scroll_win_set_show_scrollbar(UNI_SCROLL_WIN(_main_window->scroll_view), vnr_config_get()->show_scrollbar);
+
+    vnr_window_toggle_dark_bg();
+    vnr_window_toggle_smooth_images();
+
+    vnr_prefs_config_reload(_main_window->prefs);
 }

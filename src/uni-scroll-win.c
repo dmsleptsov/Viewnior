@@ -63,15 +63,15 @@ uni_scroll_win_show_scrollbar (UniScrollWin * window, gboolean show)
 {
     if (show)
     {
-        gtk_widget_show_now (window->vscroll);
-        gtk_widget_show_now (window->hscroll);
-        gtk_widget_show_now (window->nav_box);
+        G_SET_VISIBLE(window->vscroll, true);
+        G_SET_VISIBLE(window->hscroll, true);
+        G_SET_VISIBLE(window->nav_box, true);
     }
     else
     {
-        gtk_widget_hide (window->vscroll);
-        gtk_widget_hide (window->hscroll);
-        gtk_widget_hide (window->nav_box);
+        G_SET_VISIBLE(window->vscroll, false);
+        G_SET_VISIBLE(window->hscroll, false);
+        G_SET_VISIBLE(window->nav_box, false);
     }
 }
 

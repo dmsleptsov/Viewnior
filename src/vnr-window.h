@@ -25,6 +25,7 @@
 #include <gtk/gtk.h>
 #include "vnr-prefs.h"
 #include "vnr-gdbus.h"
+#include "vnr-config.h"
 
 G_BEGIN_DECLS
 
@@ -72,7 +73,6 @@ struct _VnrWindow {
 
     GList *file_list;
 
-    //TODO: separate
     VnrPrefs *prefs;
 
     gint max_width;
@@ -89,8 +89,6 @@ struct _VnrWindow {
     GtkWidget *fs_controls;
     GtkWidget *fs_seconds_label;
     GtkWidget *fs_filename_label;
-
-    gboolean one_shot_process;
 };
 
 struct _VnrWindowClass {
@@ -112,16 +110,20 @@ gboolean vnr_window_next     (VnrWindow *win, gboolean rem_timeout);
 gboolean vnr_window_prev     (VnrWindow *win);
 gboolean vnr_window_first    (VnrWindow *win);
 gboolean vnr_window_last     (VnrWindow *win);
-void     vnr_window_apply_preferences (VnrWindow *window);
-void     vnr_window_toggle_use_existing_process (const VnrWindow *window);
+
+void     vnr_window_toggle_use_existing_process ();
+void     vnr_window_toggle_dark_bg ();
+void     vnr_window_toggle_smooth_images ();
 
 VnrWindow* vnr_window_get_main();
-void vnr_window_parse_and_show(gchar **files);
+void vnr_window_parse_and_show(gchar **files, gchar* startup_id);
 
 GIntPair vnr_window_get_position();
 GIntPair vnr_window_get_size();
 
 void vnr_window_destroy();
+
+void vnr_window_config_reload();
 
 G_END_DECLS
 #endif /* __VNR_WINDOW_H__ */

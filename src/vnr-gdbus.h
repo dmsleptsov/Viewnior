@@ -11,7 +11,9 @@ gboolean vnr_dbus_register();
 
 void vnr_dbus_close();
 
-gboolean vnr_dbus_send_switch_and_focus(gchar **files);
+gboolean vnr_dbus_send_switch_and_focus(gchar **files, gchar* startup_id);
+
+gboolean vnr_dbus_send_config_update();
 
 gboolean vnr_dbus_send_quit();
 

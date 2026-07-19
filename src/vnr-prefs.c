@@ -24,20 +24,11 @@
 #include "config.h"
 #include "vnr-prefs.h"
 #include "vnr-window.h"
+#include "vnr-config.h"
 
 #define UI_PATH PACKAGE_DATA_DIR"/viewnior/vnr-preferences-dialog.ui"
 
 G_DEFINE_TYPE (VnrPrefs, vnr_prefs, G_TYPE_OBJECT);
-
-/**
- * VNR_PREF_LOAD_KEY:
- * @PK: Name of the VnrPrefs member.
- * @PT: Type of the VnrPrefs member, a suffix for g_key_file_get_.
- * @KN: Name of the key in the key file.
- * @DEF: Default value for the preference.
- */
-#define VNR_PREF_LOAD_KEY(PK, PT, KN, DEF)  prefs-> PK = g_key_file_get_ ## PT (conf, "prefs", KN, &read_error); if(read_error != NULL) { prefs-> PK = DEF; g_clear_error(&read_error); }
-#define VNR_PREF_LOAD_KEY_SECTION(PK, PT, KN, DEF, SECTION)  prefs-> PK = g_key_file_get_ ## PT (conf, SECTION, KN, &read_error); if(read_error != NULL) { prefs-> PK = DEF; g_clear_error(&read_error); }
 
 /*************************************************************/
 /***** Private signal handlers *******************************/
@@ -46,93 +37,79 @@ G_DEFINE_TYPE (VnrPrefs, vnr_prefs, G_TYPE_OBJECT);
 static void
 toggle_show_hidden_cb (GtkToggleButton *togglebutton, gpointer user_data)
 {
-    VNR_PREFS(user_data)->show_hidden = gtk_toggle_button_get_active(togglebutton);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.show_hidden = &(gboolean){gtk_toggle_button_get_active(togglebutton)}});
 }
 
 static void
 toggle_dark_background_cb (GtkToggleButton *togglebutton, gpointer user_data)
 {
-    VNR_PREFS(user_data)->dark_background = gtk_toggle_button_get_active(togglebutton);
-    vnr_prefs_save(VNR_PREFS(user_data));
-    vnr_window_apply_preferences(VNR_WINDOW(VNR_PREFS(user_data)->vnr_win));
+    vnr_config_set((VnrConfigUpdate){.dark_background = &(gboolean){gtk_toggle_button_get_active(togglebutton)}});
+    vnr_window_toggle_dark_bg();
 }
 
 static void toggle_use_existing_process_cb(GtkToggleButton *togglebutton, gpointer user_data) {
-    VNR_PREFS(user_data)->use_existing_process = gtk_toggle_button_get_active(togglebutton);
-    vnr_prefs_save(VNR_PREFS(user_data));
-    vnr_window_toggle_use_existing_process(VNR_WINDOW(VNR_PREFS(user_data)->vnr_win));
+    vnr_config_set((VnrConfigUpdate){.use_existing_process = &(gboolean){gtk_toggle_button_get_active(togglebutton)}});
+    vnr_window_toggle_use_existing_process();
 }
 
 static void
-toggle_smooth_images_cb (GtkToggleButton *togglebutton, gpointer user_data)
-{
-    VNR_PREFS(user_data)->smooth_images = gtk_toggle_button_get_active(togglebutton);
-    vnr_prefs_save(VNR_PREFS(user_data));
-    vnr_window_apply_preferences(VNR_WINDOW(VNR_PREFS(user_data)->vnr_win));
+toggle_smooth_images_cb (GtkToggleButton *togglebutton, gpointer user_data){
+    vnr_config_set((VnrConfigUpdate){.smooth_images = &(gboolean){gtk_toggle_button_get_active(togglebutton)}});
+    vnr_window_toggle_smooth_images();
 }
 
 static void
 toggle_confirm_delete_cb (GtkToggleButton *togglebutton, gpointer user_data)
 {
-    VNR_PREFS(user_data)->confirm_delete = gtk_toggle_button_get_active(togglebutton);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.confirm_delete = &(gboolean){gtk_toggle_button_get_active(togglebutton)}});
 }
 
 static void
 toggle_reload_on_save_cb (GtkToggleButton *togglebutton, gpointer user_data)
 {
-    VNR_PREFS(user_data)->reload_on_save = gtk_toggle_button_get_active(togglebutton);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.reload_on_save = &(gboolean){gtk_toggle_button_get_active(togglebutton)}});
 }
 
 static void
 change_zoom_mode_cb (GtkComboBox *widget, gpointer user_data)
 {
-    VNR_PREFS(user_data)->zoom = gtk_combo_box_get_active(widget);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.zoom = &(VnrPrefsZoom){gtk_combo_box_get_active(widget)}});
 }
 
 static void
 change_desktop_env_cb (GtkComboBox *widget, gpointer user_data)
 {
-    VNR_PREFS(user_data)->desktop = gtk_combo_box_get_active(widget);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.desktop = &(VnrPrefsDesktop){gtk_combo_box_get_active(widget)}});
 }
 
 static void
 change_jpeg_quality_cb (GtkRange *range, gpointer user_data)
 {
-    VNR_PREFS(user_data)->jpeg_quality = (int) gtk_range_get_value(range);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.jpeg_quality = &(gint){(gint)gtk_range_get_value(range)}});
 }
 
 static void
 change_png_compression_cb (GtkRange *range, gpointer user_data)
 {
-    VNR_PREFS(user_data)->png_compression = (int) gtk_range_get_value(range);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.png_compression = &(gint){(gint)gtk_range_get_value(range)}});
 }
 
 static void
 change_action_wheel_cb (GtkComboBox *widget, gpointer user_data)
 {
-    VNR_PREFS(user_data)->behavior_wheel = gtk_combo_box_get_active(widget);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.behavior_wheel = &(VnrPrefsWheel){gtk_combo_box_get_active(widget)}});
 }
 
 static void
 change_action_click_cb (GtkComboBox *widget, gpointer user_data)
 {
-    VNR_PREFS(user_data)->behavior_click = gtk_combo_box_get_active(widget);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.behavior_click = &(VnrPrefsClick){gtk_combo_box_get_active(widget)}});
 }
 
 static void
 change_action_modify_cb (GtkComboBox *widget, gpointer user_data)
 {
-    VNR_PREFS(user_data)->behavior_modify = gtk_combo_box_get_active(widget);
-    vnr_prefs_save(VNR_PREFS(user_data));
+    vnr_config_set((VnrConfigUpdate){.behavior_modify = &(VnrPrefsModify){gtk_combo_box_get_active(widget)}});
 }
 
 static gboolean
@@ -151,239 +128,131 @@ key_press_cb (GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 /***** Private actions ***************************************/
 /*************************************************************/
 
-static void
-vnr_prefs_set_default(VnrPrefs *prefs)
-{
-    prefs->zoom = VNR_PREFS_ZOOM_SMART;
-    prefs->show_hidden = FALSE;
-    prefs->dark_background = FALSE;
-    prefs->smooth_images = TRUE;
-    prefs->confirm_delete = TRUE;
-    prefs->behavior_wheel = VNR_PREFS_WHEEL_ZOOM;
-    prefs->behavior_click = VNR_PREFS_CLICK_ZOOM;
-    prefs->behavior_modify = VNR_PREFS_MODIFY_ASK;
-    prefs->jpeg_quality = 90;
-    prefs->png_compression = 9;
-    prefs->reload_on_save = FALSE;
-    prefs->show_menu_bar = FALSE;
-    prefs->show_toolbar = TRUE;
-    prefs->show_scrollbar = TRUE;
-    prefs->show_statusbar = FALSE;
-    prefs->auto_resize = FALSE;
-    prefs->use_existing_process = TRUE;
-    prefs->desktop = VNR_PREFS_DESKTOP_AUTO;
-}
-
 static GtkWidget *
-build_dialog (VnrPrefs *prefs)
-{
+build_dialog(VnrPrefs *prefs) {
     GtkBuilder *builder;
-    GtkWidget *window;
     GError *error = NULL;
 
-    GObject *close_button;
-    GtkToggleButton *show_hidden;
-    GtkToggleButton *dark_background;
-    GtkToggleButton *use_existing_process;
-    GtkBox *zoom_mode_box;
-    GtkComboBoxText *zoom_mode;
-    GtkToggleButton *smooth_images;
-    GtkToggleButton *confirm_delete;
-    GtkToggleButton *reload_on_save;
-    GtkTable *behavior_table;
-    GtkComboBoxText *action_wheel;
-    GtkComboBoxText *action_click;
-    GtkComboBoxText *action_modify;
-    GtkRange *jpeg_scale;
-    GtkRange *png_scale;
+    builder = gtk_builder_new();
+    gtk_builder_add_from_file(builder, UI_PATH, &error);
 
-    GtkBox *desktop_box;
-    GtkComboBoxText *desktop_env;
-
-    builder = gtk_builder_new ();
-    gtk_builder_add_from_file (builder, UI_PATH, &error);
-
-    if (error != NULL)
-    {
-        g_warning ("%s\n", error->message);
+    if (error != NULL) {
+        g_warning("%s\n", error->message);
         g_object_unref(builder);
         return NULL;
     }
 
-    window = GTK_WIDGET (gtk_builder_get_object (builder, "window"));
+    prefs->window = GTK_WIDGET(gtk_builder_get_object (builder, "window"));
 
     /* Close button */
-    close_button = gtk_builder_get_object (builder, "close_button");
-    g_signal_connect_swapped(close_button, "clicked",
-                             G_CALLBACK(gtk_widget_hide_on_delete), window);
+    prefs->close_button = gtk_builder_get_object(builder, "close_button");
+    g_signal_connect_swapped(prefs->close_button, "clicked", G_CALLBACK(gtk_widget_hide_on_delete), prefs->window);
 
     /* Show hidden files checkbox */
-    show_hidden = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "show_hidden"));
-    gtk_toggle_button_set_active( show_hidden, prefs->show_hidden );
-    g_signal_connect(G_OBJECT(show_hidden), "toggled", G_CALLBACK(toggle_show_hidden_cb), prefs);
+    prefs->show_hidden = GTK_TOGGLE_BUTTON(gtk_builder_get_object (builder, "show_hidden"));
+    prefs->show_hidden_handler_id = g_signal_connect(G_OBJECT(prefs->show_hidden), "toggled", G_CALLBACK(toggle_show_hidden_cb), prefs);
 
     /* Show dark background checkbox */
-    dark_background = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "dark_background"));
-    gtk_toggle_button_set_active( dark_background, prefs->dark_background );
-    g_signal_connect(G_OBJECT(dark_background), "toggled", G_CALLBACK(toggle_dark_background_cb), prefs);
+    prefs->dark_background = GTK_TOGGLE_BUTTON(gtk_builder_get_object (builder, "dark_background"));
+    prefs->dark_background_handler_id = g_signal_connect(G_OBJECT(prefs->dark_background), "toggled", G_CALLBACK(toggle_dark_background_cb), prefs);
 
     /* Use Existing Process checkbox*/
-    use_existing_process = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "use_existing_process"));
-    gtk_toggle_button_set_active( use_existing_process, prefs->use_existing_process );
-    g_signal_connect(G_OBJECT(use_existing_process), "toggled", G_CALLBACK(toggle_use_existing_process_cb), prefs);
+    prefs->use_existing_process = GTK_TOGGLE_BUTTON(gtk_builder_get_object (builder, "use_existing_process"));
+    prefs->use_existing_process_handler_id = g_signal_connect(G_OBJECT(prefs->use_existing_process), "toggled", G_CALLBACK(toggle_use_existing_process_cb),prefs);
 
     /* Smooth images checkbox */
-    smooth_images = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "smooth_images"));
-    gtk_toggle_button_set_active( smooth_images, prefs->smooth_images );
-    g_signal_connect(G_OBJECT(smooth_images), "toggled", G_CALLBACK(toggle_smooth_images_cb), prefs);
+    prefs->smooth_images = GTK_TOGGLE_BUTTON(gtk_builder_get_object (builder, "smooth_images"));
+    prefs->smooth_images_handler_id = g_signal_connect(G_OBJECT(prefs->smooth_images), "toggled", G_CALLBACK(toggle_smooth_images_cb), prefs);
 
     /* Confirm delete checkbox */
-    confirm_delete = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "confirm_delete"));
-    gtk_toggle_button_set_active( confirm_delete, prefs->confirm_delete );
-    g_signal_connect(G_OBJECT(confirm_delete), "toggled", G_CALLBACK(toggle_confirm_delete_cb), prefs);
+    prefs->confirm_delete = GTK_TOGGLE_BUTTON(gtk_builder_get_object (builder, "confirm_delete"));
+    prefs->confirm_delete_handler_id = g_signal_connect(G_OBJECT(prefs->confirm_delete), "toggled", G_CALLBACK(toggle_confirm_delete_cb), prefs);
 
     /* Reload image after save checkbox */
-    reload_on_save = GTK_TOGGLE_BUTTON (gtk_builder_get_object (builder, "reload"));
-    gtk_toggle_button_set_active( reload_on_save, prefs->reload_on_save );
-    g_signal_connect(G_OBJECT(reload_on_save), "toggled", G_CALLBACK(toggle_reload_on_save_cb), prefs);
+    prefs->reload_on_save = GTK_TOGGLE_BUTTON(gtk_builder_get_object (builder, "reload"));
+    prefs->reload_on_save_handler_id = g_signal_connect(G_OBJECT(prefs->reload_on_save), "toggled", G_CALLBACK(toggle_reload_on_save_cb), prefs);
 
     /* JPEG quality scale */
-    jpeg_scale = GTK_RANGE (gtk_builder_get_object (builder, "jpeg_scale"));
-    gtk_range_set_value(jpeg_scale, (gdouble)prefs->jpeg_quality);
-    g_signal_connect(G_OBJECT(jpeg_scale), "value-changed", G_CALLBACK(change_jpeg_quality_cb), prefs);
+    prefs->jpeg_scale = GTK_RANGE(gtk_builder_get_object (builder, "jpeg_scale"));
+    prefs->jpeg_scale_handler_id = g_signal_connect(G_OBJECT(prefs->jpeg_scale), "value-changed", G_CALLBACK(change_jpeg_quality_cb), prefs);
 
     /* PNG compression scale */
-    png_scale = GTK_RANGE (gtk_builder_get_object (builder, "png_scale"));
-    gtk_range_set_value(png_scale, (gdouble)prefs->png_compression);
-    g_signal_connect(G_OBJECT(png_scale), "value-changed", G_CALLBACK(change_png_compression_cb), prefs);
+    prefs->png_scale = GTK_RANGE(gtk_builder_get_object (builder, "png_scale"));
+    prefs->png_scale_handler_id = g_signal_connect(G_OBJECT(prefs->png_scale), "value-changed", G_CALLBACK(change_png_compression_cb), prefs);
 
     /* Zoom mode combo box */
-    zoom_mode_box = GTK_BOX (gtk_builder_get_object (builder, "zoom_mode_box"));
+    prefs->zoom_mode_box = GTK_BOX(gtk_builder_get_object (builder, "zoom_mode_box"));
 
-    zoom_mode = (GtkComboBoxText*) gtk_combo_box_text_new();
-    gtk_combo_box_text_append_text(zoom_mode, _("Smart Mode"));
-    gtk_combo_box_text_append_text(zoom_mode, _("1:1 Mode"));
-    gtk_combo_box_text_append_text(zoom_mode, _("Fit To Window Mode"));
-    gtk_combo_box_text_append_text(zoom_mode, _("Last Used Mode"));
-    gtk_combo_box_set_active(GTK_COMBO_BOX(zoom_mode), prefs->zoom);
+    prefs->zoom_mode = (GtkComboBoxText *) gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(prefs->zoom_mode, _("Smart Mode"));
+    gtk_combo_box_text_append_text(prefs->zoom_mode, _("1:1 Mode"));
+    gtk_combo_box_text_append_text(prefs->zoom_mode, _("Fit To Window Mode"));
+    gtk_combo_box_text_append_text(prefs->zoom_mode, _("Last Used Mode"));
 
-    gtk_box_pack_end (zoom_mode_box, GTK_WIDGET(zoom_mode), FALSE, FALSE, 0);
-    gtk_widget_show(GTK_WIDGET(zoom_mode));
-
-    g_signal_connect(G_OBJECT(zoom_mode), "changed", G_CALLBACK(change_zoom_mode_cb), prefs);
+    gtk_box_pack_end(prefs->zoom_mode_box, GTK_WIDGET(prefs->zoom_mode), FALSE, FALSE, 0);
+    gtk_widget_show(GTK_WIDGET(prefs->zoom_mode));
+    prefs->zoom_mode_handler_id = g_signal_connect(G_OBJECT(prefs->zoom_mode), "changed", G_CALLBACK(change_zoom_mode_cb), prefs);
 
     /* Desktop combo box */
-    desktop_box = GTK_BOX (gtk_builder_get_object (builder, "desktop_box"));
+    prefs->desktop_box = GTK_BOX(gtk_builder_get_object (builder, "desktop_box"));
 
-    desktop_env = (GtkComboBoxText*) gtk_combo_box_text_new();
-    gtk_combo_box_text_append_text(desktop_env, "GNOME 2");
-    gtk_combo_box_text_append_text(desktop_env, "GNOME 3");
-    gtk_combo_box_text_append_text(desktop_env, "XFCE");
-    gtk_combo_box_text_append_text(desktop_env, "LXDE");
-    gtk_combo_box_text_append_text(desktop_env, "PUPPY");
-    gtk_combo_box_text_append_text(desktop_env, "FluxBox");
-    gtk_combo_box_text_append_text(desktop_env, "Nitrogen");
-    gtk_combo_box_text_append_text(desktop_env, "MATE");
-    gtk_combo_box_text_append_text(desktop_env, "Cinnamon");
-    gtk_combo_box_text_append_text(desktop_env, _("Autodetect"));
-    gtk_combo_box_set_active(GTK_COMBO_BOX(desktop_env), prefs->desktop);
+    prefs->desktop_env = (GtkComboBoxText *) gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(prefs->desktop_env, "GNOME 2");
+    gtk_combo_box_text_append_text(prefs->desktop_env, "GNOME 3");
+    gtk_combo_box_text_append_text(prefs->desktop_env, "XFCE");
+    gtk_combo_box_text_append_text(prefs->desktop_env, "LXDE");
+    gtk_combo_box_text_append_text(prefs->desktop_env, "PUPPY");
+    gtk_combo_box_text_append_text(prefs->desktop_env, "FluxBox");
+    gtk_combo_box_text_append_text(prefs->desktop_env, "Nitrogen");
+    gtk_combo_box_text_append_text(prefs->desktop_env, "MATE");
+    gtk_combo_box_text_append_text(prefs->desktop_env, "Cinnamon");
+    gtk_combo_box_text_append_text(prefs->desktop_env, _("Autodetect"));
 
-    gtk_box_pack_end (desktop_box, GTK_WIDGET(desktop_env), FALSE, FALSE, 0);
-    gtk_widget_show(GTK_WIDGET(desktop_env));
+    gtk_box_pack_end(prefs->desktop_box, GTK_WIDGET(prefs->desktop_env), FALSE, FALSE, 0);
+    gtk_widget_show(GTK_WIDGET(prefs->desktop_env));
 
-    g_signal_connect(G_OBJECT(desktop_env), "changed", G_CALLBACK(change_desktop_env_cb), prefs);
+    prefs->desktop_env_handler_id = g_signal_connect(G_OBJECT(prefs->desktop_env), "changed", G_CALLBACK(change_desktop_env_cb), prefs);
 
     /* Behavior combo boxes */
-    behavior_table = GTK_TABLE (gtk_builder_get_object (builder, "behavior_table"));
+    prefs->behavior_table = GTK_TABLE(gtk_builder_get_object (builder, "behavior_table"));
 
-    action_wheel = (GtkComboBoxText*) gtk_combo_box_text_new();
-    gtk_combo_box_text_append_text(action_wheel, _("Navigate images"));
-    gtk_combo_box_text_append_text(action_wheel, _("Zoom image"));
-    gtk_combo_box_text_append_text(action_wheel, _("Scroll image up/down"));
-    gtk_combo_box_set_active(GTK_COMBO_BOX(action_wheel), prefs->behavior_wheel);
+    prefs->action_wheel = (GtkComboBoxText *) gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(prefs->action_wheel, _("Navigate images"));
+    gtk_combo_box_text_append_text(prefs->action_wheel, _("Zoom image"));
+    gtk_combo_box_text_append_text(prefs->action_wheel, _("Scroll image up/down"));
 
-    gtk_table_attach (behavior_table, GTK_WIDGET(action_wheel), 1,2,0,1, GTK_FILL,0, 0,0);
-    gtk_widget_show(GTK_WIDGET(action_wheel));
-    g_signal_connect(G_OBJECT(action_wheel), "changed", G_CALLBACK(change_action_wheel_cb), prefs);
+    gtk_table_attach(prefs->behavior_table, GTK_WIDGET(prefs->action_wheel), 1, 2, 0, 1, GTK_FILL, 0, 0, 0);
+    gtk_widget_show(GTK_WIDGET(prefs->action_wheel));
+    prefs->action_wheel_handler_id = g_signal_connect(G_OBJECT(prefs->action_wheel), "changed", G_CALLBACK(change_action_wheel_cb), prefs);
 
-    action_click = (GtkComboBoxText*) gtk_combo_box_text_new();
-    gtk_combo_box_text_append_text(action_click, _("Switch zoom modes"));
-    gtk_combo_box_text_append_text(action_click, _("Enter fullscreen mode"));
-    gtk_combo_box_text_append_text(action_click, _("Navigate images"));
-    gtk_combo_box_set_active(GTK_COMBO_BOX(action_click), prefs->behavior_click);
+    prefs->action_click = (GtkComboBoxText *) gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(prefs->action_click, _("Switch zoom modes"));
+    gtk_combo_box_text_append_text(prefs->action_click, _("Enter fullscreen mode"));
+    gtk_combo_box_text_append_text(prefs->action_click, _("Navigate images"));
 
-    gtk_table_attach (behavior_table, GTK_WIDGET(action_click), 1,2,1,2, GTK_FILL,0, 0,0);
-    gtk_widget_show(GTK_WIDGET(action_click));
-    g_signal_connect(G_OBJECT(action_click), "changed", G_CALLBACK(change_action_click_cb), prefs);
+    gtk_table_attach(prefs->behavior_table, GTK_WIDGET(prefs->action_click), 1, 2, 1, 2, GTK_FILL, 0, 0, 0);
+    gtk_widget_show(GTK_WIDGET(prefs->action_click));
+    prefs->action_click_handler_id = g_signal_connect(G_OBJECT(prefs->action_click), "changed", G_CALLBACK(change_action_click_cb), prefs);
 
-    action_modify = (GtkComboBoxText*) gtk_combo_box_text_new();
-    gtk_combo_box_text_append_text(action_modify, _("Ask every time"));
-    gtk_combo_box_text_append_text(action_modify, _("Autosave"));
-    gtk_combo_box_text_append_text(action_modify, _("Ignore changes"));
-    gtk_combo_box_set_active(GTK_COMBO_BOX(action_modify), prefs->behavior_modify);
+    prefs->action_modify = (GtkComboBoxText *) gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(prefs->action_modify, _("Ask every time"));
+    gtk_combo_box_text_append_text(prefs->action_modify, _("Autosave"));
+    gtk_combo_box_text_append_text(prefs->action_modify, _("Ignore changes"));
 
-    gtk_table_attach (behavior_table, GTK_WIDGET(action_modify), 1,2,2,3, GTK_FILL,0, 0,0);
-    gtk_widget_show(GTK_WIDGET(action_modify));
-    g_signal_connect(G_OBJECT(action_modify), "changed", G_CALLBACK(change_action_modify_cb), prefs);
+    gtk_table_attach(prefs->behavior_table, GTK_WIDGET(prefs->action_modify), 1, 2, 2, 3, GTK_FILL, 0, 0, 0);
+    gtk_widget_show(GTK_WIDGET(prefs->action_modify));
+    prefs->action_modify_handler_id = g_signal_connect(G_OBJECT(prefs->action_modify), "changed", G_CALLBACK(change_action_modify_cb), prefs);
 
     /* Window signals */
-    g_signal_connect(G_OBJECT(window), "delete-event",
-                     G_CALLBACK(gtk_widget_hide_on_delete), NULL);
-    g_signal_connect(G_OBJECT(window), "key-press-event", G_CALLBACK(key_press_cb), NULL);
+    g_signal_connect(G_OBJECT(prefs->window), "delete-event", G_CALLBACK(gtk_widget_hide_on_delete), NULL);
+    g_signal_connect(G_OBJECT(prefs->window), "key-press-event", G_CALLBACK(key_press_cb), NULL);
 
+    g_object_unref(G_OBJECT(builder));
 
-    g_object_unref (G_OBJECT (builder));
-
-    return window;
+    return prefs->window;
 }
 
-static gboolean
-vnr_prefs_load (VnrPrefs *prefs, GError **error)
-{
-    GKeyFile *conf = g_key_file_new();
-    GError *read_error = NULL;
-    GError *load_file_error = NULL;
-    const gchar *path;
 
-    path = g_build_filename (g_get_user_config_dir(), PACKAGE, "viewnior.conf", NULL);
-    g_key_file_load_from_file (conf, path, G_KEY_FILE_NONE, &load_file_error);
-
-    g_free((char*)path);
-
-    if(load_file_error != NULL)
-    {
-        g_propagate_error (error, load_file_error);
-        g_key_file_free (conf);
-        return FALSE;
-    }
-
-    VNR_PREF_LOAD_KEY (zoom, integer, "zoom-mode", VNR_PREFS_ZOOM_SMART);
-    VNR_PREF_LOAD_KEY (show_hidden, boolean, "show-hidden", FALSE);
-    VNR_PREF_LOAD_KEY (dark_background, boolean, "dark-background", FALSE);
-    VNR_PREF_LOAD_KEY (smooth_images, boolean, "smooth-images", TRUE);
-    VNR_PREF_LOAD_KEY (confirm_delete, boolean, "confirm-delete", TRUE);
-    VNR_PREF_LOAD_KEY (reload_on_save, boolean, "reload-on-save", FALSE);
-    VNR_PREF_LOAD_KEY (show_menu_bar, boolean, "show-menu-bar", FALSE);
-    VNR_PREF_LOAD_KEY (show_toolbar, boolean, "show-toolbar", TRUE);
-    VNR_PREF_LOAD_KEY (show_scrollbar, boolean, "show-scrollbar", TRUE);
-    VNR_PREF_LOAD_KEY (show_statusbar, boolean, "show-statusbar", FALSE);
-    VNR_PREF_LOAD_KEY (auto_resize, boolean, "auto-resize", FALSE);
-    VNR_PREF_LOAD_KEY (behavior_wheel, integer, "behavior-wheel", VNR_PREFS_WHEEL_ZOOM);
-    VNR_PREF_LOAD_KEY (behavior_click, integer, "behavior-click", VNR_PREFS_CLICK_ZOOM);
-    VNR_PREF_LOAD_KEY (behavior_modify, integer, "behavior-modify", VNR_PREFS_MODIFY_ASK);
-    VNR_PREF_LOAD_KEY (jpeg_quality, integer, "jpeg-quality", 90);
-    VNR_PREF_LOAD_KEY (png_compression, integer, "png-compression", 9);
-    VNR_PREF_LOAD_KEY (desktop, integer, "desktop", VNR_PREFS_DESKTOP_AUTO);
-    VNR_PREF_LOAD_KEY (use_existing_process, boolean, "use-existing-process", TRUE);
-    VNR_PREF_LOAD_KEY_SECTION (last_size.a, integer, "size.w", -1, "last-values");
-    VNR_PREF_LOAD_KEY_SECTION (last_size.b, integer, "size.h", -1, "last-values");
-    VNR_PREF_LOAD_KEY_SECTION (last_position.a, integer, "position.x", -1, "last-values");
-    VNR_PREF_LOAD_KEY_SECTION (last_position.b, integer, "position.y", -1, "last-values");
-
-    g_key_file_free (conf);
-
-    return TRUE;
-}
 
 /*************************************************************/
 /***** Stuff that deals with the type ************************/
@@ -405,140 +274,98 @@ vnr_prefs_new (GtkWidget *vnr_win)
 }
 
 static void
-vnr_prefs_init (VnrPrefs * prefs)
-{
-    GError *error = NULL;
-
-    if ( !vnr_prefs_load (prefs, &error) )
-    {
-        g_warning("Error loading config file: %s. All preferences are set to their default values. Saving ...", error->message);
-        vnr_prefs_set_default(prefs);
-        vnr_prefs_save (prefs);
-    }
-
-    prefs->dialog = NULL;
+vnr_prefs_init (VnrPrefs * prefs){
+    prefs->dialog = build_dialog (prefs);
 }
 
 /*************************************************************/
 /***** Actions ***********************************************/
 /*************************************************************/
 
-void
-vnr_prefs_show_dialog(VnrPrefs *prefs)
-{
-    if (prefs->dialog == NULL)
-    {
-        prefs->dialog = build_dialog (prefs);
-        if (prefs->dialog == NULL)
-            return;
+void vnr_prefs_show_dialog(VnrPrefs *prefs) {
+    if (prefs->dialog != nullptr) {
+        gtk_window_present(GTK_WINDOW(prefs->dialog));
     }
-    gtk_window_present(GTK_WINDOW(prefs->dialog));
-}
-
-gboolean
-vnr_prefs_save (VnrPrefs *prefs)
-{
-    GKeyFile *conf;
-    FILE *rcfile;
-    const gchar *dir;
-    const gchar *path;
-
-    dir = g_build_filename (g_get_user_config_dir(), PACKAGE, NULL);
-    path = g_build_filename (dir, "viewnior.conf", NULL);
-
-    conf = g_key_file_new();
-    g_key_file_set_integer (conf, "prefs", "zoom-mode", prefs->zoom);
-    g_key_file_set_boolean (conf, "prefs", "show-hidden", prefs->show_hidden);
-    g_key_file_set_boolean (conf, "prefs", "dark-background", prefs->dark_background);
-    g_key_file_set_boolean (conf, "prefs", "smooth-images", prefs->smooth_images);
-    g_key_file_set_boolean (conf, "prefs", "confirm-delete", prefs->confirm_delete);
-    g_key_file_set_boolean (conf, "prefs", "reload-on-save", prefs->reload_on_save);
-    g_key_file_set_boolean (conf, "prefs", "show-menu-bar", prefs->show_menu_bar);
-    g_key_file_set_boolean (conf, "prefs", "show-toolbar", prefs->show_toolbar);
-    g_key_file_set_boolean (conf, "prefs", "show-scrollbar", prefs->show_scrollbar);
-    g_key_file_set_boolean (conf, "prefs", "show-statusbar", prefs->show_statusbar);
-    g_key_file_set_boolean (conf, "prefs", "auto-resize", prefs->auto_resize);
-    g_key_file_set_integer (conf, "prefs", "behavior-wheel", prefs->behavior_wheel);
-    g_key_file_set_integer (conf, "prefs", "behavior-click", prefs->behavior_click);
-    g_key_file_set_integer (conf, "prefs", "behavior-modify", prefs->behavior_modify);
-    g_key_file_set_integer (conf, "prefs", "jpeg-quality", prefs->jpeg_quality);
-    g_key_file_set_integer (conf, "prefs", "png-compression", prefs->png_compression);
-    g_key_file_set_integer (conf, "prefs", "desktop", prefs->desktop);
-    g_key_file_set_boolean (conf, "prefs", "use-existing-process", prefs->use_existing_process);
-
-    GIntPair size = {prefs->last_size.a, prefs->last_size.b};
-    GIntPair position = {prefs->last_position.a, prefs->last_position.b};
-    if (!vnr_window_get_main()->one_shot_process) {
-        const auto current_size = vnr_window_get_size();
-        size.a = current_size.a;
-        size.b = current_size.b;
-        const auto current_position = vnr_window_get_position();
-        position.a = current_position.a;
-        position.b = current_position.b;
-    }
-    g_key_file_set_integer(conf, "last-values", "size.w", size.a);
-    g_key_file_set_integer(conf, "last-values", "size.h", size.b);
-    g_key_file_set_integer(conf, "last-values", "position.x", position.a);
-    g_key_file_set_integer(conf, "last-values", "position.y", position.b);
-
-    if(g_mkdir_with_parents (dir, 0700) != 0)
-        g_warning("Error creating config file's parent directory (%s)\n", dir);
-
-    rcfile = fopen(path , "w");
-
-    if(rcfile != NULL)
-    {
-        gchar *data = g_key_file_to_data (conf, NULL, NULL);
-        fputs(data, rcfile);
-        fclose(rcfile);
-        g_free(data);
-    }
-    else
-        g_warning("Saving config file: Unable to open the configuration file for writing!\n");
-
-    g_key_file_free (conf);
-    g_free((char*)dir);
-    g_free((char*)path);
-
-    return TRUE;
 }
 
 void
 vnr_prefs_set_show_toolbar (VnrPrefs *prefs, gboolean show_toolbar)
 {
-    if(prefs->show_toolbar != show_toolbar)
-    {
-        prefs->show_toolbar = show_toolbar;
-        vnr_prefs_save(prefs);
-    }
+    vnr_config_set((VnrConfigUpdate){.show_toolbar = &(gboolean){show_toolbar}});
 }
 
 void
 vnr_prefs_set_show_scrollbar (VnrPrefs *prefs, gboolean show_scrollbar)
 {
-    if(prefs->show_scrollbar != show_scrollbar)
-    {
-        prefs->show_scrollbar = show_scrollbar;
-        vnr_prefs_save(prefs);
-    }
+    vnr_config_set((VnrConfigUpdate){.show_scrollbar = &(gboolean){show_scrollbar}});
 }
 
 void
 vnr_prefs_set_show_statusbar (VnrPrefs *prefs, gboolean show_statusbar)
 {
-    if(prefs->show_statusbar != show_statusbar)
-    {
-        prefs->show_statusbar = show_statusbar;
-        vnr_prefs_save(prefs);
-    }
+    vnr_config_set((VnrConfigUpdate){.show_statusbar = &(gboolean){show_statusbar}});
 }
 
 void
 vnr_prefs_set_show_menu_bar (VnrPrefs *prefs, gboolean show_menu_bar)
 {
-    if(prefs->show_menu_bar != show_menu_bar)
-    {
-        prefs->show_menu_bar = show_menu_bar;
-        vnr_prefs_save(prefs);
+    vnr_config_set((VnrConfigUpdate){.show_menu_bar = &(gboolean){show_menu_bar}});
+}
+
+void vnr_prefs_config_reload(VnrPrefs *prefs) {
+    if(prefs->dialog == nullptr) {
+        return;
     }
+
+    g_signal_handler_block(prefs->show_hidden, prefs->show_hidden_handler_id);
+    gtk_toggle_button_set_active(prefs->show_hidden, vnr_config_get()->show_hidden);
+    g_signal_handler_unblock(prefs->show_hidden, prefs->show_hidden_handler_id);
+
+    g_signal_handler_block(prefs->dark_background, prefs->dark_background_handler_id);
+    gtk_toggle_button_set_active(prefs->dark_background, vnr_config_get()->dark_background);
+    g_signal_handler_unblock(prefs->dark_background, prefs->dark_background_handler_id);
+
+    g_signal_handler_block(prefs->use_existing_process, prefs->use_existing_process_handler_id);
+    gtk_toggle_button_set_active(prefs->use_existing_process, vnr_config_get()->use_existing_process);
+    g_signal_handler_unblock(prefs->use_existing_process, prefs->use_existing_process_handler_id);
+
+    g_signal_handler_block(prefs->smooth_images, prefs->smooth_images_handler_id);
+    gtk_toggle_button_set_active(prefs->smooth_images, vnr_config_get()->smooth_images);
+    g_signal_handler_unblock(prefs->smooth_images, prefs->smooth_images_handler_id);
+
+    g_signal_handler_block(prefs->confirm_delete, prefs->confirm_delete_handler_id);
+    gtk_toggle_button_set_active(prefs->confirm_delete, vnr_config_get()->confirm_delete);
+    g_signal_handler_unblock(prefs->confirm_delete, prefs->confirm_delete_handler_id);
+
+    g_signal_handler_block(prefs->reload_on_save, prefs->reload_on_save_handler_id);
+    gtk_toggle_button_set_active(prefs->reload_on_save, vnr_config_get()->reload_on_save);
+    g_signal_handler_unblock(prefs->reload_on_save, prefs->reload_on_save_handler_id);
+
+    g_signal_handler_block(prefs->jpeg_scale, prefs->jpeg_scale_handler_id);
+    gtk_range_set_value(prefs->jpeg_scale, (gdouble) vnr_config_get()->jpeg_quality);
+    g_signal_handler_unblock(prefs->jpeg_scale, prefs->jpeg_scale_handler_id);
+
+    g_signal_handler_block(prefs->png_scale, prefs->png_scale_handler_id);
+    gtk_range_set_value(prefs->png_scale, (gdouble) vnr_config_get()->png_compression);
+    g_signal_handler_unblock(prefs->png_scale, prefs->png_scale_handler_id);
+
+    g_signal_handler_block(prefs->zoom_mode, prefs->zoom_mode_handler_id);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(prefs->zoom_mode), vnr_config_get()->zoom);
+    g_signal_handler_unblock(prefs->zoom_mode, prefs->zoom_mode_handler_id);
+
+    g_signal_handler_block(prefs->desktop_env, prefs->desktop_env_handler_id);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(prefs->desktop_env), vnr_config_get()->desktop);
+    g_signal_handler_unblock(prefs->desktop_env, prefs->desktop_env_handler_id);
+
+    g_signal_handler_block(prefs->action_wheel, prefs->action_wheel_handler_id);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(prefs->action_wheel), vnr_config_get()->behavior_wheel);
+    g_signal_handler_unblock(prefs->action_wheel, prefs->action_wheel_handler_id);
+
+    g_signal_handler_block(prefs->action_click, prefs->action_click_handler_id);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(prefs->action_click), vnr_config_get()->behavior_click);
+    g_signal_handler_unblock(prefs->action_click, prefs->action_click_handler_id);
+
+    g_signal_handler_block(prefs->action_modify, prefs->action_modify_handler_id);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(prefs->action_modify), vnr_config_get()->behavior_modify);
+    g_signal_handler_unblock(prefs->action_modify, prefs->action_modify_handler_id);
 }
