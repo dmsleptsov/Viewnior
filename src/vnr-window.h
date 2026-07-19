@@ -25,6 +25,7 @@
 #include <gtk/gtk.h>
 #include "vnr-prefs.h"
 #include "vnr-gdbus.h"
+#include "vnr-config.h"
 
 G_BEGIN_DECLS
 
@@ -72,7 +73,6 @@ struct _VnrWindow {
 
     GList *file_list;
 
-    //TODO: separate
     VnrPrefs *prefs;
 
     gint max_width;
@@ -89,8 +89,6 @@ struct _VnrWindow {
     GtkWidget *fs_controls;
     GtkWidget *fs_seconds_label;
     GtkWidget *fs_filename_label;
-
-    gboolean one_shot_process;
 };
 
 struct _VnrWindowClass {

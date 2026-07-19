@@ -27,11 +27,11 @@
 #include "vnr-message-area.h"
 #include "vnr-file.h"
 #include "vnr-tools.h"
+#include "vnr-config.h"
+#include "vnr-gdbus.h"
 
-#define PIXMAP_DIR        PACKAGE_DATA_DIR"/viewnior/pixmaps/"
-
-static gchar **files = NULL;     //array of files specified to be opened
-static gboolean version = FALSE;
+static gchar **files = nullptr;
+static gboolean version = false;
 
 /* List of option entries
  * The only option is for specifying file to be opened. */
@@ -41,45 +41,36 @@ static GOptionEntry opt_entries[] = {
     {NULL}
 };
 
-gint
-main (gint argc, gchar **argv)
-{
-    GError *error = NULL;
-    GOptionContext *opt_context;
+gint main(gint argc, gchar **argv) {
+    bindtextdomain(GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+    bind_textdomain_codeset(GETTEXT_PACKAGE, "UTF-8");
+    textdomain(GETTEXT_PACKAGE);
 
-    bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
-    bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-    textdomain (GETTEXT_PACKAGE);
-
-    opt_context = g_option_context_new ("- Elegant Image Viewer");
-    g_option_context_add_main_entries (opt_context, opt_entries, NULL);
-    g_option_context_add_group (opt_context, gtk_get_option_group (TRUE));
-    g_option_context_parse (opt_context, &argc, &argv, &error);
-
-    if (error != NULL)
-    {
-        printf
-            ("%s\nRun 'viewnior --help' to see a full list of available command line options.\n",
-             error->message);
-        return 1;
+    GError *error = nullptr;
+    if (!gtk_init_with_args(&argc, &argv, "- Elegant Image Viewer", opt_entries, nullptr, &error)) {
+        printf("%s\nRun 'viewnior --help' to see a full list of available command line options.\n",
+               g_error_get_msg(error));
+        g_error_free(error);
+        return EXIT_FAILURE;
     }
-    else if(version)
-    {
+
+    if (version) {
         printf("%s\n", PACKAGE_STRING);
-        return 0;
+        return EXIT_SUCCESS;
     }
 
-    gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(), PIXMAP_DIR);
+    vnr_dbus_register();
 
-    vnr_window_new();
-
-    if (vnr_window_get_main()->prefs->use_existing_process && vnr_dbus_send_ping_pong()) {
-        vnr_window_get_main()->one_shot_process = true;
+    if (vnr_config_get()->use_existing_process && vnr_dbus_send_ping_pong()) {
         vnr_dbus_send_switch_and_focus(files);
-        vnr_window_destroy();
     } else {
+        vnr_window_new();
         vnr_window_parse_and_show(files);
         gtk_main();
     }
-    return 0;
+
+    vnr_dbus_close();
+    vnr_config_free();
+
+    return EXIT_SUCCESS;
 }

@@ -26,6 +26,11 @@
 
 #define g_error_get_msg(err) ((err) ? (err)->message : "Unknown error")
 
+typedef struct {
+ gint a;
+ gint b;
+} GIntPair;
+
 void    vnr_tools_fit_to_size (gint * w, gint * h, gint mw, gint mh);
 void    vnr_tools_fit_to_size_double (gdouble * w, gdouble * h, gint mw, gint mh);
 

@@ -25,6 +25,7 @@
 
 #include <gdk/gdk.h>
 #include "vnr-prefs.h"
+#include "vnr-config.h"
 
 #define CHECK_SIZE  8
 #define CHECK_LIGHT 0x00cccccc
